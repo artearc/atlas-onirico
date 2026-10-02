@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlas Onírico</title>
+<meta name="description" content="Generador bilingüe de criaturas, entes, paisajes y arquitecturas surrealistas de sueño y pesadilla, con prompts para IA.">
+<meta name="theme-color" content="#E6E7EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11131C" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Atlas Onírico">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: catálogo de láminas — controles a la izquierda, la lámina generada (imagen, nombre, descripción, rasgos, prompt) a la derecha */
+:root{
+  --bg:#E6E7EC; --surface:#F3F3F6; --ink:#1A1C27; --muted:#5B5F72; --line:#C8CAD4;
+  --accent:#2E3A9A; --accent-ink:#FFFFFF; --dream:#7C8FD6; --night:#7A1F2C; --lockbg:#DCDFF2;
+  --f-display:"Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --f-body:"Spectral", Georgia, "Times New Roman", serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11131C; --surface:#191C28; --ink:#E8E4D9; --muted:#9C9EAD; --line:#2D3144;
+    --accent:#A9B5FF; --accent-ink:#11131C; --dream:#9AA8F0; --night:#C8616E; --lockbg:#262B45; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11131C; --surface:#191C28; --ink:#E8E4D9; --muted:#9C9EAD; --line:#2D3144;
+  --accent:#A9B5FF; --accent-ink:#11131C; --dream:#9AA8F0; --night:#C8616E; --lockbg:#262B45; color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-text-size-adjust:100%}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto;padding-inline:clamp(16px,4vw,40px);padding-block:28px 72px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 24px;padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:32px}
+.brand h1{font-family:var(--f-display);font-weight:500;font-style:italic;font-size:clamp(2rem,4.6vw,3rem);line-height:1;margin:0;letter-spacing:-.01em}
+.brand p{margin:.5rem 0 0;color:var(--muted);max-width:56ch;font-size:.98rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:.3rem .8rem;border-radius:999px;cursor:pointer;font-family:var(--f-mono);font-size:.78rem;letter-spacing:.06em;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.grid{display:grid;grid-template-columns:290px minmax(0,1fr);gap:44px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr);gap:28px}}
+
+aside.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);display:flex;flex-direction:column;gap:26px}
+@media (max-width:880px){aside.controls{position:static}}
+.label{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.55rem}
+
+.modes{display:flex;flex-direction:column;gap:2px}
+@media (max-width:880px){.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}}
+.mode{display:flex;flex-direction:column;align-items:flex-start;text-align:left;border:1px solid transparent;background:transparent;padding:.55rem .75rem;border-radius:6px;cursor:pointer}
+.mode b{font-family:var(--f-display);font-weight:500;font-size:1.25rem;line-height:1.1}
+.mode span{font-size:.82rem;color:var(--muted)}
+.mode:hover{background:var(--surface)}
+.mode[aria-pressed="true"]{background:var(--surface);border-color:var(--line)}
+.mode[aria-pressed="true"] b{font-style:italic;color:var(--accent)}
+
+.range{width:100%;appearance:none;-webkit-appearance:none;height:6px;border-radius:999px;background:linear-gradient(90deg,var(--dream),var(--night));outline-offset:6px}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--surface);border:2px solid var(--ink);cursor:pointer}
+.range::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface);border:2px solid var(--ink);cursor:pointer}
+.range-ends{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-top:.45rem;font-style:italic}
+
+.levels{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.levels button{border:0;background:var(--surface);padding:.5rem .2rem;cursor:pointer;font-size:.88rem}
+.levels button+button{border-left:1px solid var(--line)}
+.levels button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.levels.is-off{opacity:.45;pointer-events:none}
+
+select.sel{width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+
+.go{display:flex;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:.6rem .9rem;cursor:pointer;font-size:.92rem}
+.btn:hover{border-color:var(--ink)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn-primary{flex:1;background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-family:var(--f-display);font-style:italic;font-size:1.2rem;padding:.65rem 1rem}
+.btn-primary:hover{border-color:var(--accent);filter:brightness(1.08)}
+.hint{font-size:.78rem;color:var(--muted);margin:.5rem 0 0;font-family:var(--f-mono);letter-spacing:.02em}
+
+.saved-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:280px;overflow:auto}
+.saved-list li{display:flex;align-items:center;gap:4px}
+.saved-list .open{flex:1;min-width:0;text-align:left;border:0;background:transparent;padding:.35rem .5rem;border-radius:5px;cursor:pointer;display:flex;flex-direction:column}
+.saved-list .open:hover{background:var(--surface)}
+.saved-list .open b{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:1.02rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.saved-list .open span{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.empty{color:var(--muted);font-size:.9rem;font-style:italic;margin:0}
+
+/* Resultado */
+.result{min-width:0;display:flex;flex-direction:column;gap:34px}
+.plate{margin:0}
+.plate canvas{display:block;width:100%;aspect-ratio:21/8;max-width:100%;border-radius:3px;background:var(--line)}
+.plate figcaption{display:flex;justify-content:space-between;gap:12px;margin-top:.55rem;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+.titlebar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 20px}
+.titlebar .names{min-width:0}
+.name{font-family:var(--f-display);font-style:italic;font-weight:500;font-size:clamp(2.4rem,6vw,4rem);line-height:.95;margin:0;letter-spacing:-.015em;overflow-wrap:anywhere}
+.epithet{margin:.55rem 0 0;font-family:var(--f-display);font-variant:small-caps;letter-spacing:.06em;font-size:1.15rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font-family:var(--f-display);font-size:1.25rem;padding:.25rem .8rem;border:1px solid var(--ink);border-radius:999px}
+.chip+.chip::before{content:none}
+
+.prose{font-size:clamp(1.12rem,1.6vw,1.28rem);line-height:1.62;max-width:62ch;margin:0;text-wrap:pretty}
+.prose::first-letter{font-family:var(--f-display);font-size:3.1em;float:left;line-height:.82;padding:.08em .1em 0 0;font-style:italic;color:var(--accent)}
+.prose-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+
+section.block h2{font-family:var(--f-mono);font-weight:500;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 .35rem}
+section.block .sub{margin:0 0 .9rem;color:var(--muted);font-size:.9rem;font-style:italic}
+.traits{border-top:1px solid var(--line)}
+.trait{display:grid;grid-template-columns:130px minmax(0,1fr) auto;gap:6px 16px;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.trait .t-label{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.trait .t-text{min-width:0}
+.trait.is-locked .t-text{font-style:italic}
+.trait.is-locked{background:linear-gradient(90deg,var(--lockbg),transparent 70%)}
+.t-actions{display:flex;gap:4px}
+.ib{width:34px;height:34px;display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:6px;cursor:pointer;color:var(--muted)}
+.ib:hover{border-color:var(--line);color:var(--ink);background:var(--surface)}
+.ib[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.ib svg{width:16px;height:16px}
+@media (max-width:560px){
+  .trait{grid-template-columns:minmax(0,1fr) auto}
+  .trait .t-label{grid-column:1 / -1}
+}
+
+.palette{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.sw{display:flex;flex-direction:column;align-items:flex-start;gap:5px;border:0;background:transparent;padding:0;cursor:pointer}
+.sw i{display:block;width:64px;height:44px;border-radius:3px;border:1px solid rgba(127,127,127,.25)}
+.sw span{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.prompt-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:.7rem}
+.prompt-box{font-family:var(--f-mono);font-size:.86rem;line-height:1.6;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.fade{animation:fade .45s ease-out}
+@keyframes fade{from{opacity:.35;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+
+/* Ilustrar */
+.ext{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ext a{display:flex;flex-direction:column;gap:2px;text-decoration:none;color:var(--ink);border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:.6rem .75rem}
+.ext a:hover{border-color:var(--ink)}
+.ext a b{font-weight:500}
+.ext a span{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.gen-panel{margin-top:22px;border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:14px;background:var(--surface)}
+.gen-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.gen-top .label{margin:0}
+.gen-row{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.gen-row .sel{width:auto;flex:0 1 200px}
+.gen-row .btn-primary{flex:1 1 200px}
+.keyform{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;padding:14px;border:1px dashed var(--line);border-radius:6px;background:var(--bg)}
+.keyform label{display:flex;flex-direction:column;gap:6px;min-width:0}
+.keyform input{width:100%;padding:.55rem .7rem;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-family:var(--f-mono);font-size:.85rem}
+.keyform .full{grid-column:1 / -1}
+.keyform .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.keyform a{color:var(--accent)}
+.status{margin:0;font-size:.92rem;color:var(--muted);font-style:italic;min-height:1.4em}
+.status.err{color:var(--night);font-style:normal}
+.img-out{margin:0;display:flex;flex-direction:column;gap:10px}
+.img-out img{display:block;width:100%;height:auto;border-radius:4px;border:1px solid var(--line);background:var(--bg)}
+.img-out figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.img-out a.btn{text-decoration:none;color:var(--ink)}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.thumbs button{flex:0 0 auto;border:1px solid var(--line);border-radius:4px;padding:0;background:none;cursor:pointer;width:72px;height:72px;overflow:hidden}
+.thumbs button[aria-current="true"]{border-color:var(--accent);outline:1px solid var(--accent)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.spin{display:inline-block;width:.9em;height:.9em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-.1em;margin-right:.4em}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* Barra inferior en móvil */
+.mbar{display:none}
+@media (max-width:880px){
+  .mbar{display:flex;gap:8px;position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line);z-index:5}
+  .mbar .btn-primary{flex:1}
+  .wrap{padding-bottom:120px}
+  .hint.desk{display:none}
+}
+
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--ink);color:var(--bg);font-family:var(--f-mono);font-size:.8rem;padding:.5rem .9rem;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+@media (max-width:880px){.toast{bottom:calc(env(safe-area-inset-bottom,0px) + 84px)}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1 id="brandName">Atlas Onírico</h1>
+      <p id="tagline"></p>
+    </div>
+    <div class="seg" role="group" aria-label="Idioma / Language">
+      <button id="langEs" data-lang="es">ES</button>
+      <button id="langEn" data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside class="controls">
+      <div>
+        <span class="label" data-i="whatLabel"></span>
+        <div class="modes" id="modes"></div>
+      </div>
+
+      <div>
+        <label class="label" for="mood" data-i="mood"></label>
+        <input class="range" type="range" id="mood" min="0" max="100" value="55">
+        <div class="range-ends"><span data-i="dream"></span><span data-i="nightmare"></span></div>
+      </div>
+
+      <div>
+        <span class="label" data-i="level"></span>
+        <div class="levels" id="levels" role="group"></div>
+      </div>
+
+      <div>
+        <label class="label" for="infl" data-i="infl"></label>
+        <select class="sel" id="infl"></select>
+      </div>
+
+      <div>
+        <div class="go">
+          <button class="btn" id="backBtn" title="">←</button>
+          <button class="btn btn-primary" id="genBtn"></button>
+        </div>
+        <p class="hint desk" data-i="spaceHint"></p>
+      </div>
+
+      <div>
+        <span class="label" data-i="saved"></span>
+        <ul class="saved-list" id="savedList"></ul>
+      </div>
+    </aside>
+
+    <main class="result" id="result">
+      <figure class="plate">
+        <canvas id="plate" aria-hidden="true"></canvas>
+        <figcaption><span id="plateNo"></span><span id="plateInfl"></span></figcaption>
+      </figure>
+
+      <div>
+        <div class="titlebar">
+          <div class="names">
+            <h2 class="name" id="name"></h2>
+            <p class="epithet" id="epithet"></p>
+          </div>
+          <button class="btn" id="saveBtn"></button>
+        </div>
+        <div class="chips" id="chips" hidden></div>
+      </div>
+
+      <div>
+        <p class="prose" id="prose"></p>
+        <div class="prose-actions">
+          <button class="btn" id="copyDesc"></button>
+        </div>
+      </div>
+
+      <section class="block">
+        <h2 data-i="traits"></h2>
+        <p class="sub" data-i="traitsHint"></p>
+        <div class="traits" id="traits"></div>
+      </section>
+
+      <section class="block">
+        <h2 data-i="notes"></h2>
+        <div class="traits" id="notes"></div>
+        <div class="palette" id="palette"></div>
+      </section>
+
+      <section class="block">
+        <div class="prompt-head">
+          <h2 data-i="prompt" style="margin:0"></h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div class="seg" role="group" aria-label="Prompt">
+              <button id="pEs" data-plang="es">ES</button>
+              <button id="pEn" data-plang="en">EN</button>
+            </div>
+            <button class="btn" id="copyPrompt"></button>
+          </div>
+        </div>
+        <pre class="prompt-box" id="promptBox"></pre>
+        <p class="hint" data-i="promptHint"></p>
+      </section>
+
+      <section class="block" id="illus">
+        <h2 data-i="illus"></h2>
+        <p class="sub" data-i="illusHint"></p>
+        <div class="ext" id="extLinks"></div>
+
+        <div class="gen-panel">
+          <div class="gen-top">
+            <span class="label" data-i="inPage"></span>
+            <button class="btn" id="keyToggle" aria-expanded="false" aria-controls="keyForm"></button>
+          </div>
+
+          <form class="keyform" id="keyForm" hidden autocomplete="off">
+            <label><span class="label" data-i="provider"></span>
+              <select class="sel" id="provider"></select>
+            </label>
+            <label><span class="label" data-i="model"></span>
+              <input id="model" list="modelList" spellcheck="false">
+              <datalist id="modelList"></datalist>
+            </label>
+            <label class="full"><span class="label" data-i="apiKey"></span>
+              <input id="apiKey" type="password" spellcheck="false" autocapitalize="off">
+            </label>
+            <div class="full row">
+              <button class="btn" type="submit" id="keySave"></button>
+              <button class="btn" type="button" id="keyForget"></button>
+              <a id="keyLink" href="#" target="_blank" rel="noopener"></a>
+            </div>
+            <p class="hint full" data-i="keyNote" style="margin:0"></p>
+          </form>
+
+          <div class="gen-row">
+            <select class="sel" id="aspect" aria-label="Formato"></select>
+            <button class="btn btn-primary" id="genImg"></button>
+          </div>
+          <p class="status" id="genStatus" role="status" aria-live="polite"></p>
+          <figure class="img-out" id="imgOut" hidden>
+            <img id="imgEl" alt="">
+            <figcaption><span id="imgMeta"></span><a class="btn" id="imgDl" download></a></figcaption>
+          </figure>
+          <div class="thumbs" id="thumbs" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="mbar">
+  <button class="btn" id="mBack" aria-label="">←</button>
+  <button class="btn btn-primary" id="mGen"></button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Textos de interfaz ---------- */
+const UI = {
+  es:{ brand:"Atlas Onírico",
+    tagline:"Generador de criaturas, entes, paisajes y arquitecturas de sueño y pesadilla. Una idea por lámina, para empezar a dibujar.",
+    whatLabel:"Qué soñar",
+    modes:{creature:"Criatura",entity:"Ente",landscape:"Paisaje",structure:"Estructura",spark:"Chispa"},
+    modeHint:{creature:"Seres deformes, bestias de sueño",entity:"Presencias sin cuerpo fijo",landscape:"Lugares imposibles",structure:"Arquitectura onírica",spark:"Cuatro palabras para cruzar"},
+    mood:"Tono", dream:"Sueño", nightmare:"Pesadilla", level:"Rareza", levels:["Leve","Notable","Delirante"],
+    infl:"Referencia pictórica", random:"Al azar", none:"Sin referencia",
+    gen:"Soñar otra", back:"Volver a la anterior", saved:"Guardadas",
+    noSaved:"Aún no has guardado ninguna. Pulsa Guardar cuando una idea te sirva.",
+    save:"Guardar", savedOk:"Guardada ✓", copyDesc:"Copiar descripción", copy:"Copiar prompt", copied:"Copiado al portapapeles",
+    copyFail:"Texto seleccionado: cópialo con Ctrl+C",
+    traits:"Rasgos", traitsHint:"Bloquea lo que te guste y vuelve a soñar el resto.",
+    notes:"Notas para dibujar", prompt:"Prompt para IA",
+    promptHint:"Los generadores de imagen suelen entender mejor el inglés.",
+    plate:"Lám.", reroll:"Cambiar este rasgo", lock:"Bloquear este rasgo",
+    spaceHint:"Barra espaciadora: soñar otra", del:"Borrar", hexCopied:"Color copiado", savedToast:"Guardada en tu atlas",
+    illus:"Ilustrar", illusHint:"Gratis: cada botón copia el prompt y abre el generador. Si dice «pega», mantén pulsado el cuadro de texto y pega.",
+    prefilled:"Prompt ya escrito", paste:"Pega el prompt", chatPrefix:"Genera una imagen con este prompt: ",
+    inPage:"Generar aquí con tu clave", config:"Configurar clave", hideConfig:"Ocultar", provider:"Servicio", model:"Modelo", apiKey:"Clave de API",
+    keySave:"Guardar clave", keyForget:"Olvidar clave", keyGet:"Conseguir una clave en", keySaved:"Clave guardada en este navegador", keyForgot:"Clave borrada de este navegador",
+    keyNote:"La clave se guarda solo en este navegador, nunca en GitHub. Cada imagen gasta saldo de tu cuenta en ese servicio. No la guardes en ordenadores compartidos.",
+    genImg:"Generar imagen", generating:"Generando la imagen… puede tardar hasta un minuto.", needKey:"Primero pon una clave de API: elige servicio, pégala y guárdala.",
+    aspects:{land:"Apaisada",square:"Cuadrada",port:"Vertical"}, download:"Descargar",
+    errKey:"La clave no es válida o ha caducado. Revísala en Configurar clave.", errPay:"Tu cuenta no tiene saldo suficiente para este modelo. Prueba otro modelo o recarga.",
+    errRate:"Demasiadas peticiones seguidas. Espera un poco y vuelve a probar.", errNet:"No se pudo conectar con el servicio. Comprueba la conexión.",
+    errTimeout:"El servicio ha tardado demasiado. Vuelve a probar o elige un modelo más rápido.", errOther:"El servicio devolvió un error",
+    done:"Lista. En el móvil, mantén pulsada la imagen para guardarla." },
+  en:{ brand:"Oneiric Atlas",
+    tagline:"A generator of creatures, entities, landscapes and architecture from dreams and nightmares. One idea per plate, to get you drawing.",
+    whatLabel:"What to dream",
+    modes:{creature:"Creature",entity:"Entity",landscape:"Landscape",structure:"Structure",spark:"Spark"},
+    modeHint:{creature:"Deformed beings, dream beasts",entity:"Presences without a fixed body",landscape:"Impossible places",structure:"Dream architecture",spark:"Four words to cross"},
+    mood:"Tone", dream:"Dream", nightmare:"Nightmare", level:"Strangeness", levels:["Mild","Marked","Delirious"],
+    infl:"Painterly reference", random:"Random", none:"No reference",
+    gen:"Dream another", back:"Go back to the previous one", saved:"Saved",
+    noSaved:"Nothing saved yet. Press Save when an idea is worth keeping.",
+    save:"Save", savedOk:"Saved ✓", copyDesc:"Copy description", copy:"Copy prompt", copied:"Copied to clipboard",
+    copyFail:"Text selected: copy it with Ctrl+C",
+    traits:"Traits", traitsHint:"Lock what you like and dream the rest again.",
+    notes:"Drawing notes", prompt:"AI prompt",
+    promptHint:"Image generators usually understand English best.",
+    plate:"Plate", reroll:"Change this trait", lock:"Lock this trait",
+    spaceHint:"Space bar: dream another", del:"Delete", hexCopied:"Colour copied", savedToast:"Saved to your atlas",
+    illus:"Illustrate", illusHint:"Free: each button copies the prompt and opens the generator. If it says “paste”, long-press the text box and paste.",
+    prefilled:"Prompt already filled in", paste:"Paste the prompt", chatPrefix:"Generate an image from this prompt: ",
+    inPage:"Generate here with your key", config:"Set up key", hideConfig:"Hide", provider:"Service", model:"Model", apiKey:"API key",
+    keySave:"Save key", keyForget:"Forget key", keyGet:"Get a key at", keySaved:"Key saved in this browser", keyForgot:"Key removed from this browser",
+    keyNote:"The key is stored only in this browser, never on GitHub. Each image spends credit from your account on that service. Don't save it on shared computers.",
+    genImg:"Generate image", generating:"Generating the image… this can take up to a minute.", needKey:"First add an API key: choose a service, paste it and save it.",
+    aspects:{land:"Landscape",square:"Square",port:"Portrait"}, download:"Download",
+    errKey:"The key is invalid or expired. Check it under Set up key.", errPay:"Your account doesn't have enough credit for this model. Try another model or top up.",
+    errRate:"Too many requests in a row. Wait a moment and try again.", errNet:"Couldn't reach the service. Check your connection.",
+    errTimeout:"The service took too long. Try again or pick a faster model.", errOther:"The service returned an error",
+    done:"Done. On a phone, long-press the image to save it." }
+};
+
+const LABELS = {
+  name:["Nombre","Name"], epi:["Título","Title"],
+  form:["Forma","Form"], material:["Materia","Material"], head:["Cabeza","Head"], legs:["Se sostiene","Stands on"],
+  anom:["Deformidad","Anomaly"], move:["Movimiento","Movement"], behav:["Conducta","Behaviour"], habitat:["Hábitat","Habitat"],
+  what:["Naturaleza","Nature"], perc:["Cómo se percibe","How it is perceived"], sign:["Presagio","Omen"], wants:["Deseo","Desire"], eff:["Efecto","Effect"],
+  time:["Hora","Time"], ground:["Suelo","Ground"], sky:["Cielo","Sky"], landmark:["Hito","Landmark"], detail:["Detalle","Detail"], atmos:["Atmósfera","Atmosphere"],
+  type:["Edificio","Building"], smat:["Materia","Material"], feat:["Rareza","Oddity"], loc:["Ubicación","Location"], inside:["Interior","Interior"], inhab:["Habitantes","Inhabitants"],
+  obj:["Objeto","Object"], animal:["Animal","Animal"], part:["Anatomía","Anatomy"], feel:["Emoción","Emotion"],
+  comp:["Composición","Composition"], light:["Luz","Light"], medium:["Técnica","Medium"], infl:["Referencia","Reference"]
+};
+
+/* ---------- Datos: [es, en, tono 0 sueño · 1 inquietante · 2 pesadilla] ---------- */
+const D = {
+ form:[
+  ["una figura alta y encorvada, casi humana","a tall, stooped, almost human figure",1],
+  ["un ser del tamaño de una catedral","a being the size of a cathedral",1],
+  ["una criatura pequeña como un gorrión","a creature as small as a sparrow",0],
+  ["un animal que recuerda a un caballo mal recordado","an animal that resembles a badly remembered horse",1],
+  ["una silueta femenina sin rostro","a faceless female silhouette",1],
+  ["un ser larguísimo, como un niño estirado en un sueño","an impossibly long being, like a child stretched out in a dream",2],
+  ["una criatura con forma de mueble antiguo","a creature shaped like an antique piece of furniture",0],
+  ["un ser hinchado y lento, como un globo de carne","a bloated, slow being, like a balloon of flesh",2],
+  ["una bestia elegante de cuello infinito","an elegant beast with an endless neck",0],
+  ["una figura doble, unida por la espalda a su gemela","a double figure joined at the back to its twin",2],
+  ["un pez enorme que nada en el aire","an enormous fish swimming through the air",0],
+  ["un insecto del tamaño de un perro","an insect the size of a dog",2],
+  ["una anciana diminuta que cabe en una taza","a tiny old woman who fits inside a teacup",0],
+  ["un ser hecho de varios animales mal cosidos","a being made of several badly stitched animals",2],
+  ["una figura inmóvil que siempre está de espaldas","a motionless figure that always has its back to you",2],
+  ["un pájaro sin plumas con postura de persona","a featherless bird with the posture of a person",1],
+  ["un ciervo blanco con algo equivocado en las proporciones","a white stag with something wrong in its proportions",1],
+  ["una masa que cambia de forma cuando nadie la mira","a mass that changes shape when no one is looking",2]
+ ],
+ material:[
+  ["cera de vela a medio derretir","half-melted candle wax",1],["porcelana agrietada","cracked porcelain",1],
+  ["pan húmedo","damp bread",1],["mármol que respira","breathing marble",0],["terciopelo y dientes","velvet and teeth",2],
+  ["humo solidificado","solidified smoke",0],["la pulpa de una fruta demasiado madura","the pulp of overripe fruit",2],
+  ["papel de periódico mojado","wet newspaper",1],["raíces entrelazadas","tangled roots",0],
+  ["cristal lleno de agua turbia","glass filled with murky water",1],["piel de cebolla translúcida","translucent onion skin",1],
+  ["encaje antiguo y alambre","antique lace and wire",1],["nubes cosidas con hilo rojo","clouds stitched together with red thread",0],
+  ["hueso pulido como el marfil","bone polished like ivory",2],["cera de abeja y miel","beeswax and honey",0],
+  ["caucho tenso","taut rubber",2],["arena que se escurre sin parar","sand that keeps trickling away",0],
+  ["cuero cosido a mano","hand-stitched leather",2],["espejos rotos","broken mirrors",1],
+  ["musgo y terciopelo verde","moss and green velvet",0],["carne sin piel, brillante","glistening skinless flesh",2]
+ ],
+ head:[
+  ["una jaula de pájaros vacía","an empty birdcage",1],["un reloj de pared sin agujas","a wall clock with no hands",1],
+  ["una lámpara de aceite encendida","a lit oil lamp",0],["un racimo de ojos como uvas","a cluster of eyes like grapes",2],
+  ["una flor carnívora cerrada","a closed carnivorous flower",2],["una máscara de yeso sonriente","a smiling plaster mask",2],
+  ["un nido con un huevo que late","a nest holding a pulsing egg",1],["una pecera con una luna dentro","a fishbowl with a moon inside",0],
+  ["una mano abierta que saluda","an open hand, waving",1],["un candelabro de tres brazos","a three-armed candelabra",0],
+  ["una boca vertical llena de dientes de leche","a vertical mouth full of baby teeth",2],["un velo de novia que flota sobre nada","a bridal veil floating over nothing",1],
+  ["una concha de caracol gigante","a giant snail shell",0],["un teléfono antiguo que no deja de sonar","an antique telephone that never stops ringing",1],
+  ["un agujero perfecto por el que se ve el cielo","a perfect hole through which you can see the sky",0],["la cabeza de un caballo de ajedrez","the head of a chess knight",0],
+  ["varias cabezas pequeñas que discuten entre sí","several small heads arguing with each other",2],["un ramo de manos","a bouquet of hands",2],
+  ["una vela que nunca se consume","a candle that never burns down",0],["un paraguas abierto del que gotea tinta","an open umbrella dripping ink",1]
+ ],
+ legs:[
+  ["muletas de madera que le brotan del cuerpo","wooden crutches sprouting from its body",1],["cuatro patas de mesa victoriana","four Victorian table legs",0],
+  ["decenas de dedos humanos","dozens of human fingers",2],["zancos de hueso larguísimos","impossibly long stilts of bone",1],
+  ["manos que hacen de pies","hands that work as feet",2],["una sola rueda de carne","a single wheel of flesh",2],
+  ["raíces que se arrastran","creeping roots",0],["patas de ave, finas como ramas secas","bird legs, thin as dry twigs",1],
+  ["nada: flota a un palmo del suelo","nothing at all: it floats a hand's width above the ground",0],["una cola de sirena enroscada","a coiled mermaid's tail",0],
+  ["piernas de maniquí con medias","mannequin legs in stockings",1],["patas de araña articuladas como compases","spider legs jointed like drawing compasses",2],
+  ["un pedestal de estatua que arrastra","a statue's pedestal that it drags along",1],["sus propias sombras, que son sólidas","its own shadows, which are solid",0],
+  ["cientos de cilios, como una oruga","hundreds of cilia, like a caterpillar",2],["ruedas de bicicleta oxidadas","rusty bicycle wheels",1]
+ ],
+ anom:[
+  ["cajones abiertos en el pecho, cada uno con un recuerdo ajeno","open drawers in its chest, each holding a stranger's memory",0],
+  ["la piel cubierta de pequeñas bocas que susurran a la vez","skin covered in tiny mouths that whisper in unison",2],
+  ["un agujero en el torso por el que se ve otro paisaje","a hole in its torso through which another landscape is visible",0],
+  ["las costillas por fuera, como el armazón de un paraguas","its ribs on the outside, like the frame of an umbrella",2],
+  ["ojos en las palmas de las manos","eyes in the palms of its hands",1],
+  ["una escalera de caracol que le sube por la columna","a spiral staircase climbing its spine",0],
+  ["mariposas atrapadas bajo la piel","butterflies trapped beneath its skin",1],
+  ["demasiadas articulaciones en los brazos","too many joints in its arms",2],
+  ["un reloj de arena en lugar de corazón","an hourglass instead of a heart",0],
+  ["dientes donde deberían estar las uñas","teeth where its fingernails should be",2],
+  ["medio cuerpo transparente, como una lámina de anatomía","half its body transparent, like an anatomical chart",1],
+  ["velas encendidas incrustadas en la espalda","lit candles embedded in its back",1],
+  ["una segunda cara, dormida, en la nuca","a second, sleeping face on the back of its neck",2],
+  ["flores que le crecen de las heridas","flowers growing out of its wounds",1],
+  ["una larga cremallera del cuello al vientre","a long zipper running from throat to belly",2],
+  ["hilos de marioneta que suben hasta el cielo","puppet strings rising into the sky",1],
+  ["el cuerpo lleno de cerraduras","a body covered in keyholes",0],
+  ["una nube de lluvia propia sobre los hombros","its own rain cloud above its shoulders",0],
+  ["brazos que terminan en tijeras de costura","arms that end in sewing scissors",2],
+  ["la piel estampada como un papel pintado antiguo","skin patterned like antique wallpaper",0],
+  ["un nido de pájaros en el estómago abierto","a bird's nest inside its open stomach",2],
+  ["la sombra de otra criatura, más grande","the shadow of a different, larger creature",1],
+  ["un pelo larguísimo que no deja de crecer y arrastra","endlessly growing hair that drags behind it",1],
+  ["una puerta diminuta en el vientre, entreabierta","a tiny door in its belly, left ajar",0],
+  ["huellas dactilares humanas por todo el cuerpo","human fingerprints all over its body",2],
+  ["partes del cuerpo apoyadas en pequeñas muletas","body parts propped up on tiny crutches",1],
+  ["una corona de dientes","a crown of teeth",2],
+  ["un acuario en el cráneo donde nadan peces de colores","an aquarium in its skull where goldfish swim",0]
+ ],
+ move:[
+  ["como una película a la que le faltan fotogramas","like a film with missing frames",2],["muy despacio, como si caminara bajo el agua","very slowly, as if walking underwater",0],
+  ["a saltos, siempre hacia atrás","in hops, always backwards",1],["solo cuando suena una campana","only when a bell rings",1],
+  ["arrastrándose, con una gracia insoportable","by dragging itself along with unbearable grace",2],["como un bailarín de ballet muy cansado","like a very tired ballet dancer",0],
+  ["deslizándose sobre su propio reflejo","by gliding on its own reflection",0],["en espiral, nunca en línea recta","in spirals, never in a straight line",1],
+  ["a cuatro patas, aunque tenga más","on all fours, even though it has more limbs",2],["flotando como un globo que pierde aire","floating like a balloon losing air",0],
+  ["imitando los pasos de quien tiene delante","by copying the steps of whoever stands in front of it",2],["de puntillas, sin hacer ningún ruido","on tiptoe, without a sound",1],
+  ["girando despacio sobre su eje, como una caja de música","turning slowly on its axis, like a music box",0],["a sacudidas, como una marioneta mal manejada","in jerks, like a badly handled puppet",2]
+ ],
+ behav:[
+  ["Repite con un segundo de retraso todo lo que oye.","It repeats everything it hears, one second late.",2],
+  ["Colecciona los objetos que la gente pierde en sueños.","It collects the objects people lose in their dreams.",0],
+  ["Se alimenta de nombres olvidados.","It feeds on forgotten names.",1],
+  ["Llora cuando ve su reflejo, pero siempre lo busca.","It weeps when it sees its reflection, yet always seeks it out.",1],
+  ["Nunca ataca: solo se queda mirando hasta que te vas.","It never attacks; it just keeps staring until you leave.",2],
+  ["Teje con su pelo tapices de lugares que nunca existieron.","It weaves tapestries of places that never existed, using its own hair.",0],
+  ["Cuenta los dientes de quien duerme.","It counts the teeth of those who sleep.",2],
+  ["Canta nanas en un idioma que suena al revés.","It sings lullabies in a language that sounds backwards.",1],
+  ["Cambia un objeto de sitio en cada casa que visita.","It moves one object in every house it visits.",1],
+  ["Se esconde dentro de los cuadros y espera.","It hides inside paintings and waits.",1],
+  ["Es inofensivo, pero quien lo ve tiene el mismo sueño esa noche.","It is harmless, but whoever sees it has the same dream that night.",0],
+  ["Cuida de los relojes parados como si fueran sus crías.","It tends stopped clocks as if they were its young.",0],
+  ["Se lleva los rostros de las fotografías antiguas.","It takes the faces out of old photographs.",2],
+  ["Aparece en el mismo rincón de cada sueño, cada vez un poco más cerca.","It appears in the same corner of every dream, a little closer each time.",2],
+  ["Huye de la luz eléctrica, pero ama las velas.","It flees electric light but loves candles.",0],
+  ["Si le hablas, responde con tu voz de cuando eras niño.","If you speak to it, it answers in your childhood voice.",2],
+  ["Planta dientes en la tierra y espera a que crezca algo.","It plants teeth in the soil and waits for something to grow.",2],
+  ["Pasa la eternidad intentando abrir una puerta pintada en un muro.","It spends eternity trying to open a door painted on a wall.",0]
+ ],
+ habitat:[
+  ["los pasillos de hospitales que ya no existen","the corridors of hospitals that no longer exist",2],
+  ["un desierto de arena rosa bajo un cielo verde","a pink sand desert under a green sky",0],
+  ["el fondo de las piscinas vacías","the bottom of empty swimming pools",1],
+  ["una playa donde el mar es de tela","a beach where the sea is made of fabric",0],
+  ["los armarios de las casas de los abuelos","the wardrobes of grandparents' houses",1],
+  ["un bosque de farolas apagadas","a forest of unlit streetlamps",1],
+  ["una plaza italiana de sombras demasiado largas","an Italian piazza with shadows far too long",1],
+  ["el interior de un piano abandonado","the inside of an abandoned piano",0],
+  ["un pantano de leche tibia","a swamp of lukewarm milk",1],
+  ["las escaleras de un edificio infinito","the stairwells of an endless building",2],
+  ["un jardín de estatuas con los ojos vendados","a garden of blindfolded statues",2],
+  ["el hueco entre dos espejos enfrentados","the space between two facing mirrors",1],
+  ["una ciudad hundida bajo un lago helado","a city sunk beneath a frozen lake",1],
+  ["un teatro vacío donde la función nunca empieza","an empty theatre where the show never begins",1],
+  ["las nubes bajas sobre un campo de trigo","the low clouds above a wheat field",0],
+  ["un matadero convertido en catedral","a slaughterhouse turned cathedral",2],
+  ["un salón de baile cubierto de arena","a ballroom buried in sand",0],
+  ["los túneles bajo un cementerio de juguetes","the tunnels beneath a cemetery of toys",2],
+  ["un invernadero donde siempre es de noche","a greenhouse where it is always night",0],
+  ["un mar de cabello que flota inmóvil","a sea of hair floating motionless",2]
+ ],
+ cEpi:[["Pastor de relojes","Shepherd of Clocks"],["Coleccionista de párpados","Collector of Eyelids"],["Madre de las polillas","Mother of Moths"],["Guardián del último peldaño","Keeper of the Last Step"],["Huésped de los espejos","Guest of Mirrors"],["Portador de la lluvia quieta","Bearer of Still Rain"],["Lector de sueños ajenos","Reader of Other People's Dreams"],["Jardinero de dientes","Gardener of Teeth"],["Vigía del pasillo largo","Watcher of the Long Corridor"],["Sastre de sombras","Tailor of Shadows"],["Novia de la marea","Bride of the Tide"],["Ladrón de rostros","Thief of Faces"],["Músico sin manos","The Handless Musician"],["Heredero del polvo","Heir to the Dust"],["Inquilino del desván","Tenant of the Attic"],["Custodio de las nanas","Custodian of Lullabies"]],
+
+ /* Entes */
+ what:[
+  ["un hueco con forma de persona que flota a la altura de los ojos","a person-shaped hole floating at eye level",2],
+  ["una nube de polillas que mantiene la forma de un vestido de novia","a cloud of moths holding the shape of a wedding dress",1],
+  ["una luz cálida que se esconde detrás de los muebles","a warm light that hides behind the furniture",0],
+  ["una melodía que se puede ver, como un hilo de humo dorado","a melody you can see, like a thread of golden smoke",0],
+  ["la sombra de alguien que todavía no ha nacido","the shadow of someone not yet born",1],
+  ["un enjambre de manos pequeñas que vuelan como pájaros","a swarm of small hands that fly like birds",2],
+  ["un ojo enorme que ocupa toda una habitación","an enormous eye filling an entire room",2],
+  ["una figura de niebla que solo existe en los reflejos","a figure of mist that exists only in reflections",1],
+  ["un perfume con voluntad propia","a perfume with a will of its own",0],
+  ["un velo que flota solo, con algo debajo que respira","a veil floating on its own, with something breathing beneath it",2],
+  ["una constelación que baja a la tierra con forma de animal","a constellation that comes down to earth in the shape of an animal",0],
+  ["un murmullo de muchas voces que dibuja una silueta","a murmur of many voices that traces a silhouette",1],
+  ["una silla vacía que siempre está caliente","an empty chair that is always warm",1],
+  ["un pliegue en el aire, como una tela arrugada","a fold in the air, like crumpled fabric",1],
+  ["un niño hecho de luz de luna que no proyecta sombra","a child made of moonlight who casts no shadow",0],
+  ["una boca que aparece en las paredes y vuelve a cerrarse","a mouth that appears on walls and closes again",2]
+ ],
+ perc:[
+  ["Solo puede verse con el rabillo del ojo.","It can only be seen out of the corner of the eye.",1],
+  ["Los niños y los perros lo ven; los adultos solo lo sienten.","Children and dogs can see it; adults only feel it.",1],
+  ["Aparece en todas las fotografías, pero nunca en el mismo sitio.","It appears in every photograph, but never in the same place.",2],
+  ["Se oye antes de verse, como una respiración en otra habitación.","You hear it before you see it, like breathing in another room.",2],
+  ["Quien lo mira demasiado tiempo empieza a olvidar palabras.","Whoever looks at it too long begins to forget words.",2],
+  ["Solo es visible en el instante de quedarse dormido.","It is only visible at the moment of falling asleep.",0],
+  ["Se refleja en el agua aunque no esté allí.","It is reflected in water even when it isn't there.",1],
+  ["Tiene el tamaño exacto del miedo de quien lo observa.","It is exactly the size of the observer's fear.",2],
+  ["Cambia de forma según quién lo recuerde.","It changes shape depending on who remembers it.",0],
+  ["Se manifiesta como un calor suave en la nuca.","It makes itself known as a gentle warmth on the back of the neck.",0],
+  ["Los relojes se detienen cuando está cerca.","Clocks stop when it is near.",1],
+  ["Deja de existir si alguien pronuncia su nombre.","It ceases to exist if someone speaks its name.",0]
+ ],
+ sign:[
+  ["olor a lluvia en una habitación cerrada","the smell of rain in a closed room",1],["un timbre que suena en una casa sin timbre","a doorbell ringing in a house with no doorbell",2],
+  ["pétalos que caen del techo","petals falling from the ceiling",0],["el silencio repentino de todos los pájaros","the sudden silence of every bird",2],
+  ["un sabor a hierro en la boca","a taste of iron in the mouth",2],["una caja de música que suena muy lejos","a music box playing very far away",1],
+  ["escarcha con forma de letras en los cristales","frost shaped like letters on the windowpanes",1],["el olor a pan recién hecho","the smell of freshly baked bread",0],
+  ["luces que se encienden solas, una tras otra","lights switching on by themselves, one after another",1],["agua que hierve sin fuego","water boiling without fire",1],
+  ["polillas pegadas a las ventanas","moths clinging to the windows",1],["una sensación de domingo por la tarde","a Sunday-afternoon feeling",0],
+  ["un llanto de bebé que sale de las paredes","a baby's cry coming from inside the walls",2],["una brisa tibia que huele a mar","a warm breeze that smells of the sea",0]
+ ],
+ wants:[
+  ["Busca a alguien que recuerde su nombre.","It searches for someone who remembers its name.",1],
+  ["Quiere volver a un cuerpo que ya no existe.","It wants to return to a body that no longer exists.",2],
+  ["Solo desea que alguien le cuente un cuento.","It only wants someone to tell it a story.",0],
+  ["Intenta reunir todo lo que se perdió un mismo día.","It tries to gather everything that was lost on a single day.",0],
+  ["Quiere ocupar el lugar de quien sueña.","It wants to take the dreamer's place.",2],
+  ["Persigue su propio eco desde hace siglos.","It has been chasing its own echo for centuries.",0],
+  ["Necesita que lo miren para no desaparecer.","It needs to be looked at, or it will vanish.",1],
+  ["Espera a que alguien abra una puerta concreta.","It waits for someone to open one particular door.",1],
+  ["Colecciona los últimos pensamientos antes de dormir.","It collects the last thoughts before sleep.",1],
+  ["Quiere enseñar algo, pero no sabe hablar.","It wants to show you something, but cannot speak.",0],
+  ["Tiene hambre de luz.","It hungers for light.",2],
+  ["Protege a quienes duermen solos.","It protects those who sleep alone.",0]
+ ],
+ eff:[
+  ["los relojes se llenan de agua","clocks fill with water",0],["las flores se giran para no mirarlo","flowers turn away from it",1],
+  ["las fotografías pierden a una persona","photographs lose one person",2],["los muebles se mueven un palmo hacia la pared","furniture shifts a hand's width toward the wall",1],
+  ["crece musgo en las teclas de los pianos","moss grows on piano keys",0],["aparecen puertas donde antes había pared","doors appear where there used to be walls",0],
+  ["los espejos se empañan con la marca de una mano","mirrors fog up with a handprint",2],["la gente olvida qué día de la semana es","people forget what day of the week it is",0],
+  ["los animales se duermen de pie","animals fall asleep standing up",1],["la leche se corta formando dibujos","milk curdles into drawings",1],
+  ["las sombras tardan un poco en seguir a sus dueños","shadows take a moment to follow their owners",1],["quedan dientes diminutos en el alféizar","tiny teeth are left on the windowsill",2],
+  ["la lluvia se detiene en el aire","rain stops in mid-air",0],["las muñecas cambian de expresión","dolls change their expression",2],
+  ["el papel pintado muestra un dibujo nuevo","the wallpaper shows a new pattern",1],["las velas arden con llama azul","candles burn with a blue flame",1]
+ ],
+ eEpi:[["Lo que espera detrás de las puertas","What Waits Behind Doors"],["Lo que queda cuando te vas","What Remains When You Leave"],["La presencia del pasillo","The Presence in the Corridor"],["El huésped invisible","The Invisible Guest"],["La visita de las cuatro","The Four O'Clock Visitor"],["Lo que se oye en la otra habitación","What You Hear in the Other Room"],["El aliento de la casa","The Breath of the House"],["La que borra los nombres","She Who Erases Names"],["Lo que sueña al soñador","What Dreams the Dreamer"],["El inquilino del reflejo","The Tenant of Reflections"]],
+
+ /* Paisajes */
+ time:[
+  ["Una tarde que lleva siglos sin terminar","An afternoon that has lasted for centuries",0],["Es mediodía, pero el sol es negro","It is noon, but the sun is black",2],
+  ["Una noche con tres lunas de distinto tamaño","A night with three moons of different sizes",0],["El instante exacto antes de un eclipse","The exact moment before an eclipse",1],
+  ["Un amanecer de color carne","A flesh-coloured dawn",2],["Una hora que no aparece en ningún reloj","An hour that appears on no clock",1],
+  ["Un crepúsculo verde y eléctrico","A green, electric dusk",1],["Un domingo eterno de luz amarilla","An eternal Sunday of yellow light",0],
+  ["Es de noche, pero todo proyecta sombra como a pleno sol","It is night, yet everything casts shadows as if in full sun",1],["Un invierno sin nieve bajo un cielo de ceniza","A snowless winter under an ash sky",2],
+  ["Una primavera en la que las flores se marchitan al revés","A spring in which flowers wilt in reverse",0],["La luz es la de una habitación de hospital a las cuatro de la madrugada","The light is that of a hospital room at four in the morning",2]
+ ],
+ ground:[
+  ["un tablero de ajedrez que se curva hacia arriba en el horizonte","a chessboard that curves upward at the horizon",0],["una piel tensa que se hunde a cada paso","a taut skin that sinks with every step",2],
+  ["un mar de sábanas blancas con olas lentas","a sea of white bedsheets with slow waves",0],["un desierto de sal en el que crecen muebles","a salt flat where furniture grows",0],
+  ["un campo de cabellos que el viento peina","a field of hair combed by the wind",2],["un espejo enorme, rajado en mil direcciones","an enormous mirror, cracked in a thousand directions",1],
+  ["un parqué infinito que cruje como un barco","an endless parquet floor that creaks like a ship",1],["tierra roja llena de huesos de animales que no existen","red earth full of the bones of animals that never existed",2],
+  ["agua quieta sobre la que se puede caminar","still water you can walk on",0],["arena gris de la que asoman manos de estatuas","grey sand from which statue hands emerge",1],
+  ["un césped perfecto que respira","a perfect lawn that breathes",1],["páginas de libros apiladas en capas geológicas","book pages stacked in geological layers",0],
+  ["una costra de cera de vela enfriada","a crust of cooled candle wax",1],["un enlosado de dientes gigantes","a pavement of giant teeth",2],
+  ["nubes compactas que hay que pisar con cuidado","packed clouds that must be walked on carefully",0],["barro tibio que conserva cada huella para siempre","warm mud that keeps every footprint forever",2]
+ ],
+ sky:[
+  ["una sábana tendida, sujeta con pinzas del tamaño de montañas","a hanging sheet held up by clothespins the size of mountains",0],["un techo de yeso con grietas por las que gotea luz","a plaster ceiling with cracks that drip light",1],
+  ["un ojo cerrado que a veces parpadea","a closed eye that sometimes blinks",2],["un océano boca abajo, con peces que miran hacia el suelo","an upside-down ocean, with fish looking down at the ground",0],
+  ["un papel pintado de flores que se despega por las esquinas","floral wallpaper peeling at the corners",1],["de un azul perfecto, lleno de nubes con forma de pájaro","a perfect blue, full of bird-shaped clouds",0],
+  ["un remolino lento de humo de colores","a slow swirl of coloured smoke",0],["una cúpula de cristal sucio, vista desde dentro","a dirty glass dome, seen from inside",1],
+  ["carne viva surcada de venas","living, veined flesh",2],["un telón de teatro rojo que alguien sostiene","a red theatre curtain that someone is holding up",1],
+  ["un mapa antiguo con continentes que se desplazan","an antique map with drifting continents",0],["completamente negro, salvo un rectángulo de día","completely black, except for one rectangle of daylight",1],
+  ["un enjambre de polillas inmóviles","a swarm of motionless moths",2],["el reflejo invertido del propio paisaje","an inverted reflection of the landscape itself",0],
+  ["una tormenta congelada en mitad de un relámpago","a storm frozen mid-lightning",1],["una lluvia que cae hacia arriba","rain falling upwards",0]
+ ],
+ landmark:[
+  ["una mano de piedra gigantesca cuyos dedos son torres","a gigantic stone hand whose fingers are towers",1],["un árbol del que cuelgan relojes blandos","a tree hung with soft clocks",0],
+  ["una puerta sin pared, abierta a la noche","a door with no wall, opening onto the night",0],["una cabeza clásica rota y hueca, con una escalera dentro","a broken, hollow classical head with a staircase inside",1],
+  ["una montaña con forma de mujer dormida","a mountain shaped like a sleeping woman",0],["un faro que proyecta oscuridad","a lighthouse that casts darkness",1],
+  ["una pila de sillas que llega hasta las nubes","a pile of chairs reaching the clouds",0],["un esqueleto de ballena convertido en iglesia","a whale skeleton turned into a church",1],
+  ["una cama con dosel, inmensa y sola","a vast, solitary canopy bed",1],["un capullo gigante que late","a giant pulsing cocoon",2],
+  ["un ojo de piedra que llora arena","a stone eye weeping sand",1],["una torre de dientes apilados","a tower of stacked teeth",2],
+  ["una jaula del tamaño de un pueblo","a cage the size of a village",2],["un piano de cola enterrado hasta la mitad","a half-buried grand piano",0],
+  ["un cuerpo tendido del tamaño de una cordillera","a reclining body the size of a mountain range",2],["un tren detenido en el aire","a train stopped in mid-air",0],
+  ["un columpio que cuelga de la nada","a swing hanging from nothing",1],["una estatua ecuestre sin jinete y sin cabeza","an equestrian statue with neither rider nor head",1]
+ ],
+ detail:[
+  ["una procesión de figuras sin rostro arrastra un piano","a procession of faceless figures drags a piano",1],["una niña con un aro corre hacia su propia sombra","a girl with a hoop runs toward her own shadow",1],
+  ["un velero navega sobre la arena","a sailing ship glides across the sand",0],["alguien saluda desde una ventana que flota","someone waves from a floating window",0],
+  ["un banco de peces cruza el aire","a school of fish crosses the air",0],["un hombre con sombrero hongo espera un tren que no llegará","a man in a bowler hat waits for a train that will never come",0],
+  ["arden pequeñas hogueras que no dan luz","small bonfires burn without giving off light",2],["unas figuras envueltas en sábanas permanecen inmóviles","figures wrapped in sheets stand motionless",2],
+  ["un caballo blanco se disuelve como el azúcar","a white horse dissolves like sugar",1],["una bañera llena de nubes avanza sola","a bathtub full of clouds moves on its own",0],
+  ["una multitud de maniquíes mira en la misma dirección","a crowd of mannequins stares in the same direction",2],["un gigante dormido respira bajo la tierra","a sleeping giant breathes beneath the earth",1],
+  ["suena una música de feria, pero no hay nadie","fairground music plays, but no one is there",2],["una escalera sube hasta una nube y se interrumpe","a staircase climbs into a cloud and stops",0],
+  ["un perro sin dueño vigila una maleta","an ownerless dog guards a suitcase",1],["cae un telón sobre una parte del horizonte","a curtain falls over part of the horizon",1]
+ ],
+ atmos:[
+  ["No hay viento, pero todo parece a punto de caerse.","There is no wind, yet everything seems about to fall.",1],["Huele a lluvia y a habitación cerrada.","It smells of rain and of a closed room.",1],
+  ["El silencio es tan denso que se puede tocar.","The silence is so thick you could touch it.",2],["Todo está cubierto por una fina capa de polvo dorado.","Everything is covered in a thin layer of golden dust.",0],
+  ["Las sombras no coinciden con los objetos que las proyectan.","The shadows don't match the objects casting them.",1],["Hace calor, aunque nieva ceniza.","It is hot, although ash is falling like snow.",2],
+  ["Todo parece pintado con demasiado cuidado, como un decorado.","Everything looks painted too carefully, like a stage set.",0],["De vez en cuando, el paisaje entero parpadea.","Every now and then, the whole landscape blinks.",2],
+  ["Las distancias engañan: lo lejano está a un paso.","Distances deceive: what is far away is one step off.",0],["Da la sensación de haber estado allí de niño.","You feel you were there once, as a child.",0],
+  ["Algo enorme acaba de irse, y todavía queda su calor.","Something enormous has just left, and its warmth remains.",2],["Una niebla baja deja ver solo las cosas que importan.","A low mist reveals only the things that matter.",0]
+ ],
+ lEpi:[["La llanura del último domingo","The Plain of the Last Sunday"],["El valle de las sábanas","The Valley of Bedsheets"],["La costa sin mar","The Shore Without a Sea"],["El jardín de la espera","The Garden of Waiting"],["La meseta de los relojes","The Plateau of Clocks"],["El país de debajo de la cama","The Country Under the Bed"],["La orilla de la siesta","The Shore of the Afternoon Nap"],["El desierto del eco","The Desert of Echoes"],["La provincia del insomnio","The Province of Insomnia"],["El mar de la infancia","The Sea of Childhood"],["Las tierras del párpado","The Eyelid Lands"],["La comarca del olvido","The Shire of Forgetting"]],
+
+ /* Estructuras */
+ type:[
+  ["Una catedral","A cathedral",1],["Una torre","A tower",0],["Un faro","A lighthouse",0],["Una escalera monumental","A monumental staircase",0],
+  ["Un puente","A bridge",0],["Una casa de campo","A farmhouse",1],["Un teatro de ópera","An opera house",0],["Un hospital","A hospital",2],
+  ["Una biblioteca","A library",0],["Un invernadero","A greenhouse",0],["Una fábrica","A factory",2],["Un ascensor a la intemperie","An open-air elevator",1],
+  ["Un hotel","A hotel",1],["Un orfanato","An orphanage",2],["Un observatorio","An observatory",0],["Un mausoleo","A mausoleum",2],
+  ["Una noria","A Ferris wheel",1],["Un palacio","A palace",0],["Un colegio","A school",2],["Una estación de tren","A train station",1]
+ ],
+ smat:[
+  ["hueso pulido","polished bone",2],["dientes de leche","baby teeth",2],["cajones de cómoda","dresser drawers",0],["cristal soplado y humo","blown glass and smoke",0],
+  ["libros cerrados con candado","padlocked books",0],["carne y ladrillo","flesh and brick",2],["nubes compactadas","compacted clouds",0],["cera blanda","soft wax",1],
+  ["mármol veteado que sangra","bleeding veined marble",2],["jaulas de pájaro","birdcages",1],["muebles antiguos apilados","stacked antique furniture",0],["conchas marinas","seashells",0],
+  ["coral blanco","white coral",0],["papel de cartas que nunca se enviaron","paper from letters never sent",0],["hierro oxidado y encaje","rusted iron and lace",1],
+  ["piel curtida tensada sobre costillas","tanned hide stretched over ribs",2],["azúcar","sugar",0],["espejos","mirrors",1]
+ ],
+ feat:[
+  ["escaleras que solo suben, incluso cuando bajas","staircases that only go up, even when you descend",0],["ventanas que muestran otras estaciones del año","windows that show other seasons",0],
+  ["puertas en el techo y en el suelo","doors in the ceiling and in the floor",1],["habitaciones más grandes por dentro que por fuera","rooms larger inside than outside",0],
+  ["columnas que se doblan como si estuvieran cansadas","columns that bend as if they were tired",1],["una fachada con un rostro que cambia de expresión","a façade with a face that changes expression",2],
+  ["pasillos que siempre vuelven al mismo cuarto","corridors that always lead back to the same room",2],["raíces en lugar de cimientos","roots instead of foundations",0],
+  ["balcones donde alguien espera desde hace años","balconies where someone has been waiting for years",1],["chimeneas que sueltan pájaros en vez de humo","chimneys that release birds instead of smoke",0],
+  ["relojes en todas las paredes, cada uno con una hora distinta","clocks on every wall, each showing a different time",1],["una sola ventana iluminada, siempre la misma","a single lit window, always the same one",2],
+  ["muros que sudan","walls that sweat",2],["arcos que se repiten hasta el infinito","arches repeating into infinity",0],
+  ["costuras visibles, como si lo hubieran cosido","visible seams, as if it had been sewn together",1],["cortinas que respiran","curtains that breathe",2],
+  ["tejados inclinados en ángulos imposibles","roofs tilted at impossible angles",1],["una cúpula que es un ojo entreabierto","a dome that is a half-open eye",2],
+  ["agua que trepa por las paredes","water that climbs up the walls",0],["plantas enteras que flotan separadas del resto","entire floors floating apart from the rest",0],
+  ["el interior forrado de terciopelo rojo y húmedo","an interior lined with damp red velvet",2],["sombras pintadas en la fachada que no son de nada","shadows painted on the façade that belong to nothing",1]
+ ],
+ loc:[
+  ["en mitad de un mar de leche","in the middle of a sea of milk",0],["sobre el caparazón de una tortuga gigante","on the shell of a giant tortoise",0],
+  ["al borde de un acantilado que cae hacia el cielo","on the edge of a cliff that falls into the sky",0],["en el fondo de un pozo enorme","at the bottom of an enormous well",2],
+  ["al final de unas cadenas que cuelgan de las nubes","at the end of chains hanging from the clouds",1],["en una isla exactamente del tamaño de su planta","on an island exactly the size of its footprint",1],
+  ["en una plaza desierta rodeada de arcadas","in a deserted piazza ringed with arcades",1],["en un bosque petrificado","in a petrified forest",1],
+  ["dentro de una pompa de jabón","inside a soap bubble",0],["en el interior de un cuerpo dormido","inside a sleeping body",2],
+  ["en mitad de una autopista vacía","in the middle of an empty motorway",2],["en la cresta de una ola congelada","on the crest of a frozen wave",0],
+  ["entre las ramas de un árbol inmenso","among the branches of an immense tree",0],["en un páramo de niebla y cuervos","on a moor of fog and crows",2]
+ ],
+ inside:[
+  ["hay un bosque que crece hacia abajo","a forest grows downwards",0],["llueve sobre una mesa puesta para cien invitados","it rains over a table set for a hundred guests",1],
+  ["cada habitación es la misma habitación, un poco más vieja","every room is the same room, a little older",2],["un océano ocupa el salón principal","an ocean fills the main hall",0],
+  ["todos los cuadros muestran de espaldas a quien los mira","every painting shows the viewer from behind",2],["miles de velas iluminan un trono vacío","thousands of candles light an empty throne",1],
+  ["hay camas de hospital alineadas hasta el horizonte","hospital beds are lined up to the horizon",2],["un carrusel gira sin música","a carousel turns without music",2],
+  ["los libros se escriben solos mientras duermes","books write themselves while you sleep",0],["las escaleras son de agua","the stairs are made of water",0],
+  ["un gigante encogido vive en el desván","a shrunken giant lives in the attic",1],["las paredes son de carne y laten despacio","the walls are flesh and pulse slowly",2],
+  ["el suelo es un cielo nocturno por el que se camina","the floor is a night sky you walk across",0],["hay una habitación que no aparece en ningún plano","there is a room that appears on no floor plan",1],
+  ["todos los espejos están cubiertos con sábanas","every mirror is covered with a sheet",2],["un jardín de invierno crece entre los muebles","a winter garden grows among the furniture",0]
+ ],
+ inhab:[
+  ["Allí viven monjas sin rostro que cuidan de los relojes.","Faceless nuns live there, tending the clocks.",2],["Nadie vive allí, pero cada noche alguien enciende las luces.","No one lives there, yet every night someone turns on the lights.",1],
+  ["Nació de los sueños de un niño que nunca despertó.","It was born from the dreams of a child who never woke up.",2],["Sus habitantes son tan pequeños que solo se ven sus sombras.","Its inhabitants are so small that only their shadows can be seen.",0],
+  ["Un único portero lo vigila desde hace trescientos años.","A single doorman has guarded it for three hundred years.",1],["Los pájaros van allí a aprender a cantar.","Birds go there to learn how to sing.",0],
+  ["Allí terminan todos los paraguas olvidados.","It is where every forgotten umbrella ends up.",0],["Dicen que quien entra sale siendo otra persona.","They say whoever goes in comes out as someone else.",2],
+  ["Solo se puede entrar dormido.","You can only enter while asleep.",0],["Por las noches se oyen risas en pisos que no existen.","At night, laughter can be heard on floors that don't exist.",2],
+  ["Es un lugar de paso para las almas de los objetos rotos.","It is a waystation for the souls of broken objects.",0],["Las enfermeras que lo atienden llevan máscaras de pájaro.","The nurses who run it wear bird masks.",2]
+ ],
+ sEpi:[["El lugar que recuerda","The Place that Remembers"],["Morada de las horas perdidas","Dwelling of Lost Hours"],["Asilo de los objetos rotos","Asylum of Broken Objects"],["Refugio del último huésped","Refuge of the Last Guest"],["Templo sin fieles","Temple Without Worshippers"],["Arquitectura del insomnio","Architecture of Insomnia"],["Casa de la siesta eterna","House of the Endless Nap"],["Monumento a nadie","Monument to No One"],["Archivo de los sueños","Archive of Dreams"],["Palacio de la espera","Palace of Waiting"]],
+
+ /* Chispa */
+ obj:[["paraguas","umbrella"],["reloj de bolsillo","pocket watch"],["candelabro","candelabra"],["máquina de coser","sewing machine"],["teléfono antiguo","rotary telephone"],["jaula","birdcage"],["piano","piano"],["bañera","bathtub"],["armario","wardrobe"],["escalera de mano","ladder"],["sombrero hongo","bowler hat"],["tetera","teapot"],["farola","streetlamp"],["maniquí","mannequin"],["vela","candle"],["llave","key"],["tijeras","scissors"],["globo terráqueo","globe"],["lámpara de araña","chandelier"],["cuna","cradle"],["muñeca de porcelana","porcelain doll"],["violonchelo","cello"],["máscara de gas","gas mask"],["reloj de arena","hourglass"],["caballito de carrusel","carousel horse"],["cerradura","keyhole"],["abanico","folding fan"],["gramófono","gramophone"],["silla de ruedas","wheelchair"],["espejo de mano","hand mirror"]],
+ animal:[["medusa","jellyfish"],["polilla","moth"],["caracol","snail"],["ciervo","stag"],["pulpo","octopus"],["cuervo","raven"],["liebre","hare"],["mantis","mantis"],["rape abisal","anglerfish"],["búho","owl"],["caballo","horse"],["cigüeña","stork"],["ciempiés","centipede"],["ajolote","axolotl"],["cisne","swan"],["murciélago","bat"],["tortuga","tortoise"],["garza","heron"],["salamandra","salamander"],["ballena","whale"],["araña","spider"],["gato","cat"],["cabra","goat"],["langosta","lobster"]],
+ part:[["demasiados dientes","too many teeth"],["ojos en sitios equivocados","eyes in the wrong places"],["manos humanas","human hands"],["una lengua larguísima","an extremely long tongue"],["las costillas a la vista","exposed ribs"],["pestañas enormes","enormous eyelashes"],["una boca vertical","a vertical mouth"],["dedos de más","extra fingers"],["el corazón a la vista","a visible heart"],["orejas que son conchas","ears that are seashells"],["pelo humano","human hair"],["la columna vertebral expuesta","an exposed spine"],["labios donde no deberían estar","lips where they shouldn't be"],["un ombligo en la frente","a navel on its forehead"],["piernas de bailarina","a dancer's legs"],["venas doradas","golden veins"],["trenzas larguísimas","very long braids"],["uñas de nácar","mother-of-pearl nails"]],
+ feel:[["melancolía","melancholy",1],["ternura","tenderness",0],["vergüenza","shame",1],["nostalgia","nostalgia",0],["repulsión","revulsion",2],["calma","calm",0],["culpa","guilt",2],["euforia","euphoria",0],["soledad","loneliness",1],["espera","anticipation",1],["timidez","shyness",0],["aburrimiento","boredom",1],["anhelo","longing",0],["pánico","panic",2],["duelo","grief",2],["asombro","wonder",0],["inquietud","unease",2]],
+ pEpi:[["Ejercicio de cruce","Crossing exercise"],["Semilla para el cuaderno","A seed for the sketchbook"],["Boceto de cinco minutos","Five-minute sketch"],["Hibridación","Hybridisation"],["Cadáver exquisito","Exquisite corpse"]],
+
+ /* Notas de dibujo (comunes) */
+ comp:[
+  ["plano general con el horizonte muy bajo","wide shot with a very low horizon"],["contrapicado desde el suelo","low-angle view from the ground"],
+  ["retrato frontal y simétrico, como un icono","frontal, symmetrical portrait, like an icon"],["visto a través de una puerta entreabierta","seen through a half-open door"],
+  ["la figura diminuta en un espacio inmenso","a tiny figure in an immense space"],["primer plano extremo de un detalle","extreme close-up of a detail"],
+  ["lámina de bestiario con anotaciones a mano","bestiary plate with handwritten annotations"],["vista cenital","top-down view"],
+  ["reflejado en agua quieta","reflected in still water"],["encuadre de escenario teatral, con telón","framed as a theatre stage, with curtains"],
+  ["perspectiva forzada con punto de fuga central","forced perspective with a central vanishing point"],["tríptico, como un retablo","triptych, like an altarpiece"]
+ ],
+ light:[
+  ["luz rasante de atardecer con sombras larguísimas","raking sunset light with extremely long shadows"],["luz de luna fría","cold moonlight"],
+  ["un único foco desde abajo","a single spotlight from below"],["luz blanca y plana de hospital","flat white hospital light"],
+  ["resplandor sin fuente aparente","a glow with no visible source"],["contraluz dorado y polvoriento","dusty golden backlight"],
+  ["luz de vela","candlelight"],["niebla luminosa","luminous fog"],["luz de eclipse","eclipse light"],
+  ["mediodía sin sombras","shadowless noon"],["claroscuro de bodegón","still-life chiaroscuro"],["luz de tormenta verdosa","greenish storm light"]
+ ],
+ medium:[
+  ["óleo sobre lienzo, veladuras finas","oil on canvas, thin glazes"],["grafito y carboncillo sobre papel","graphite and charcoal on paper"],
+  ["gouache mate","matte gouache"],["aguafuerte con tramado de línea","etching with line hatching"],
+  ["acuarela con manchas y sal","watercolour with blooms and salt"],["temple al huevo sobre tabla","egg tempera on panel"],
+  ["tinta y plumilla, estilo grabado de bestiario","pen and ink, bestiary engraving style"],["aerógrafo monocromo","monochrome airbrush"],
+  ["pastel y carboncillo, a lo noir","pastel and charcoal, noir style"],["collage de grabados antiguos","collage of antique engravings"],
+  ["pintura digital con textura de óleo","digital painting with oil texture"],["lápices de colores sobre papel tintado","coloured pencil on toned paper"]
+ ]
+};
+
+const INFL = [
+ {n:"Salvador Dalí", pal:["#F2E6C9","#E8C27A","#C46A2B","#5B8DB8","#2F2A26"], kw:["estilo de Salvador Dalí, formas blandas, desierto inmenso, óleo hiperrealista","in the style of Salvador Dalí, melting forms, vast desert, hyperreal oil painting"]},
+ {n:"René Magritte", pal:["#F1EFE6","#7FA7CF","#C9B79C","#3E6B3A","#2C3E50"], kw:["estilo de René Magritte, óleo limpio y plano, yuxtaposiciones imposibles","in the style of René Magritte, clean flat oil painting, impossible juxtapositions"]},
+ {n:"Max Ernst", pal:["#C9A66B","#B85C38","#8C6D3F","#3A5A40","#1E2B24"], kw:["estilo de Max Ernst, texturas de decalcomanía y frottage, bosques petrificados","in the style of Max Ernst, decalcomania and frottage textures, petrified forests"]},
+ {n:"Yves Tanguy", pal:["#D8D2C4","#9DB4C0","#C8B88A","#5C6B73","#2E2F33"], kw:["estilo de Yves Tanguy, formas biomórficas, horizonte infinito, sombras largas","in the style of Yves Tanguy, biomorphic forms, endless horizon, long shadows"]},
+ {n:"Remedios Varo", pal:["#E3C99A","#B07D48","#8A9A7B","#5A4A3A","#2B2420"], kw:["estilo de Remedios Varo, alquímico, figuras alargadas y delicadas, tonos tierra cálidos","in the style of Remedios Varo, alchemical, delicate elongated figures, warm umber tones"]},
+ {n:"Leonora Carrington", pal:["#E9DDC0","#C7A86B","#4D5C7A","#7A2E2E","#2F3B35"], kw:["estilo de Leonora Carrington, bestiario mítico, temple, figuras ceremoniales","in the style of Leonora Carrington, mythic bestiary, tempera, ceremonial figures"]},
+ {n:"Zdzisław Beksiński", pal:["#D9C48F","#C2A35A","#7A4A2A","#3B2A20","#1A1512"], kw:["estilo de Zdzisław Beksiński, surrealismo distópico, decadencia, huesos y tela, bruma dorada","in the style of Zdzisław Beksiński, dystopian surrealism, decay, bone and cloth, golden haze"]},
+ {n:"El Bosco", pal:["#E4D8B4","#C9A13B","#A13D2D","#3D5C3A","#2B2B2B"], kw:["estilo de El Bosco, híbridos medievales, pintura sobre tabla, multitud de detalles","in the style of Hieronymus Bosch, medieval hybrids, panel painting, teeming detail"]},
+ {n:"Giorgio de Chirico", pal:["#E8D7A8","#D9A441","#A54B2A","#2E4A6B","#1E1E1E"], kw:["estilo de Giorgio de Chirico, plaza metafísica, arcadas, maniquíes, sombras largas","in the style of Giorgio de Chirico, metaphysical piazza, arcades, mannequins, long shadows"]},
+ {n:"Dorothea Tanning", pal:["#EFE7DA","#D8C3A5","#B4886B","#6B2D3A","#3A3F55"], kw:["estilo de Dorothea Tanning, interiores domésticos inquietantes, telas vivas","in the style of Dorothea Tanning, uncanny domestic interiors, living fabric"]},
+ {n:"Kay Sage", pal:["#C9C6BC","#B9A98A","#8E9AA3","#5B6670","#2F353B"], kw:["estilo de Kay Sage, arquitectura desolada, andamios, telas drapeadas, luz gris","in the style of Kay Sage, desolate architecture, scaffolding, draped cloth, grey light"]},
+ {n:"H. R. Giger", pal:["#B9BDB4","#8C9188","#6D5D4B","#4A5048","#1C1F1D"], kw:["estilo de H. R. Giger, biomecánico, aerógrafo monocromo","in the style of H. R. Giger, biomechanical, monochrome airbrush"]},
+ {n:"Leonor Fini", pal:["#E8D3C0","#C98C8C","#A65A3A","#7E8C6A","#3E2C3B"], kw:["estilo de Leonor Fini, figuras felinas y enmascaradas, sensual y teatral","in the style of Leonor Fini, feline and masked figures, sensual and theatrical"]},
+ {n:"Odilon Redon", pal:["#E9DFC4","#E3A65B","#9C5BA0","#4B6BA8","#2A2440"], kw:["estilo de Odilon Redon, pastel y carboncillo, ojos flotantes, flores de sueño","in the style of Odilon Redon, pastel and charcoal noirs, floating eyes, dream flowers"]},
+ {n:"Jacek Yerka", pal:["#F0E2C2","#D7A65A","#8BAF6F","#5A82A6","#A35D3E"], kw:["estilo de Jacek Yerka, surrealismo detallado y cálido, paisajes que se transforman en objetos","in the style of Jacek Yerka, warm detailed surrealism, landscapes merging with objects"]}
+];
+const MOOD_PAL = [
+ ["#F0D9E7","#B9C7E8","#E9E2C8","#8FA9A0","#5B5F8C"],
+ ["#E6DFCF","#C9B98F","#B26B4E","#7D8B8C","#4A4E5A"],
+ ["#C9B38A","#8C6A4F","#5A1E1E","#2A2326","#141114"]
+];
+const MOOD_KW = [
+ ["atmósfera de sueño, calma inquietante, suave","dreamlike atmosphere, uncanny calm, soft"],
+ ["inquietante, liminal, extraño","uncanny, liminal, eerie"],
+ ["pesadilla, grotesco, opresivo, perturbador","nightmarish, grotesque, oppressive, disturbing"]
+];
+
+/* Modos: [clave, lista, ¿se repite según la rareza?] */
+const MODES = {
+ creature:{ slots:[["form"],["material"],["head"],["legs"],["anom","anom",true],["move"],["behav"],["habitat"]], epi:"cEpi" },
+ entity:{ slots:[["what"],["perc"],["sign"],["wants"],["eff","eff",true],["habitat"]], epi:"eEpi" },
+ landscape:{ slots:[["time"],["ground"],["sky"],["landmark"],["detail","detail",true],["atmos"]], epi:"lEpi" },
+ structure:{ slots:[["type"],["smat"],["loc"],["feat","feat",true],["inside"],["inhab"]], epi:"sEpi" },
+ spark:{ slots:[["obj"],["animal"],["part"],["feel"]], epi:"pEpi", noLevel:true }
+};
+const MODE_ORDER = ["creature","entity","landscape","structure","spark"];
+
+/* ---------- Utilidades ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = () => Math.floor(Math.random()*2**31);
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+const lc = s => s.charAt(0).toLowerCase()+s.slice(1);
+const $ = id => document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function joinList(arr, L){
+  if(arr.length<2) return arr.join("");
+  const last = arr[arr.length-1];
+  let conj = L===0 ? (/^h?i[^aeiouáéíóú]/i.test(last) ? " e " : " y ") : (arr.length>2 ? ", and " : " and ");
+  return arr.slice(0,-1).join(", ") + conj + last;
+}
+function roman(n){const m=[[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];let r="";for(const[v,s]of m){while(n>=v){r+=s;n-=v}}return r}
+const PRE=["Vel","Mor","Oss","Lith","Cal","Nyx","Ser","Umb","Quel","Ast","Zor","Hel","Mal","Ond","Ir","Ves","Gal","Ther","Orn","Sib","Mel","Cor","Lun","Ab","Is","Ul","Pyr","Sel","Var","Em"];
+const MID=["a","e","i","o","u","ae","io","ia","","ar","el","on"];
+const SUF=["drix","mora","nth","lune","goth","phel","ara","ith","usa","ombe","ex","oria","ul","yne","ast","ira","ost","elle","ax","uria","ond"];
+function makeName(seed){const r=mulberry32(seed);const p=a=>a[Math.floor(r()*a.length)];let n=p(PRE)+p(MID)+p(SUF);return n.replace(/(.)\1\1/g,"$1$1")}
+
+/* ---------- Estado ---------- */
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const prefs = store.get("atlas-prefs",{});
+const state = {
+  lang: prefs.lang || ((navigator.language||"es").toLowerCase().startsWith("es") ? "es" : "en"),
+  plang: prefs.plang || "en",
+  mode: prefs.mode && MODES[prefs.mode] ? prefs.mode : "creature",
+  mood: typeof prefs.mood==="number" ? prefs.mood : 55,
+  level: [1,2,3].includes(prefs.level) ? prefs.level : 2,
+  infl: prefs.infl ?? "random",
+  m: {}, /* por modo: {picks, locks} */
+  history: [],
+  saved: store.get("atlas-saved",[])
+};
+function savePrefs(){store.set("atlas-prefs",{lang:state.lang,plang:state.plang,mode:state.mode,mood:state.mood,level:state.level,infl:state.infl})}
+const L = () => state.lang==="es"?0:1;
+const tr = k => UI[state.lang][k];
+
+function slotKeys(mode){
+  const def=MODES[mode]; const out=[];
+  for(const [key,list,multi] of def.slots){
+    if(multi && !def.noLevel){ for(let i=0;i<state.level;i++) out.push({key:key+i, base:key, list:list||key}); }
+    else out.push({key, base:key, list:list||key});
+  }
+  return out;
+}
+function noteKeys(){
+  const k=[{key:"comp",base:"comp",list:"comp"},{key:"light",base:"light",list:"light"},{key:"medium",base:"medium",list:"medium"}];
+  if(state.infl==="random") k.push({key:"infl",base:"infl",list:"__infl"});
+  return k;
+}
+function weight(item){
+  if(item.length<3 || typeof item[2]!=="number") return 1;
+  const d=item[2]/2 - state.mood/100;
+  return Math.exp(-(d*d)/(2*0.35*0.35));
+}
+function pickFrom(listName, avoid){
+  if(listName==="__infl"){let i;do{i=Math.floor(Math.random()*INFL.length)}while(avoid.has(i)&&INFL.length>avoid.size);return i}
+  const list=D[listName];
+  const idx=list.map((_,i)=>i).filter(i=>!avoid.has(i));
+  const pool=idx.length?idx:list.map((_,i)=>i);
+  const ws=pool.map(i=>weight(list[i])); const tot=ws.reduce((a,b)=>a+b,0);
+  let r=Math.random()*tot;
+  for(let j=0;j<pool.length;j++){r-=ws[j];if(r<=0)return pool[j]}
+  return pool[pool.length-1];
+}
+function ms(){ if(!state.m[state.mode]) state.m[state.mode]={picks:{},locks:{}}; return state.m[state.mode]; }
+function allKeys(){ return [{key:"name",base:"name"},{key:"epi",base:"epi",list:MODES[state.mode].epi}, ...slotKeys(state.mode), ...noteKeys()]; }
+
+function assign(force, onlyKey){
+  const s=ms();
+  for(const k of allKeys()){
+    if(onlyKey && k.key!==onlyKey) continue;
+    const has = s.picks[k.key]!==undefined;
+    if(has && (s.locks[k.key] || !force)) continue;
+    if(k.key==="name"){ s.picks.name=rnd(); continue; }
+    const avoid=new Set();
+    for(const o of allKeys()) if(o.list===k.list && o.key!==k.key && s.picks[o.key]!==undefined) avoid.add(s.picks[o.key]);
+    if(onlyKey && has) avoid.add(s.picks[k.key]);
+    s.picks[k.key]=pickFrom(k.list, avoid);
+  }
+}
+function snapshot(){ return {mode:state.mode, picks:{...ms().picks}}; }
+function generate(){
+  if(Object.keys(ms().picks).length){ state.history.push(snapshot()); if(state.history.length>30) state.history.shift(); }
+  assign(true); render(true);
+}
+
+/* ---------- Composición del texto ---------- */
+function curInfl(){
+  if(state.infl==="none") return null;
+  if(state.infl==="random") return INFL[ms().picks.infl] || INFL[0];
+  return INFL[+state.infl] || null;
+}
+function moodBucket(){ return state.mood<34?0:state.mood<67?1:2; }
+function compose(li){
+  const p=ms().picks;
+  const v=k=>{const it=allKeys().find(x=>x.key===k); return D[it.list][p[k]][li]};
+  const multi=base=>slotKeys(state.mode).filter(k=>k.base===base).map(k=>v(k.key));
+  const es=li===0; let prose="", frags=[];
+  switch(state.mode){
+   case "creature":{
+     const a=multi("anom");
+     prose = es
+      ? `${cap(v("form"))}, con el cuerpo hecho de ${v("material")}. En lugar de cabeza tiene ${v("head")}. Se sostiene sobre ${v("legs")}. Tiene ${joinList(a,0)}. Se mueve ${v("move")}. ${v("behav")} Habita en ${v("habitat")}.`
+      : `${cap(v("form"))}, its body made of ${v("material")}. Instead of a head, it has ${v("head")}. It stands on ${v("legs")}. It has ${joinList(a,1)}. It moves ${v("move")}. ${v("behav")} It dwells in ${v("habitat")}.`;
+     frags = es
+      ? ["diseño de criatura surrealista y onírica", v("form"), `cuerpo hecho de ${v("material")}`, `${v("head")} en lugar de cabeza`, `sobre ${v("legs")}`, ...a.map(x=>"con "+x), `en ${v("habitat")}`]
+      : ["surreal dreamlike creature design", v("form"), `body made of ${v("material")}`, `${v("head")} instead of a head`, `standing on ${v("legs")}`, ...a.map(x=>"with "+x), `in ${v("habitat")}`];
+     break; }
+   case "entity":{
+     const e=multi("eff");
+     prose = es
+      ? `Es ${v("what")}. ${v("perc")} Su llegada se anuncia con ${v("sign")}. ${v("wants")} Donde pasa, ${joinList(e,0)}. Suele aparecer en ${v("habitat")}.`
+      : `It is ${v("what")}. ${v("perc")} Its arrival is heralded by ${v("sign")}. ${v("wants")} Wherever it passes, ${joinList(e,1)}. It tends to appear in ${v("habitat")}.`;
+     frags = es
+      ? ["aparición surrealista y etérea", v("what"), ...e, `en ${v("habitat")}`]
+      : ["surreal ethereal apparition", v("what"), ...e, `in ${v("habitat")}`];
+     break; }
+   case "landscape":{
+     const d=multi("detail");
+     const pre = es?["A lo lejos, ","Más cerca, ","Justo a tus pies, "]:["In the distance, ","Closer, ","Right at your feet, "];
+     const dl = d.map((x,i)=>pre[i]+x+".").join(" ");
+     prose = es
+      ? `${v("time")}. El suelo es ${v("ground")}. El cielo es ${v("sky")}. En el centro se alza ${v("landmark")}. ${dl} ${v("atmos")}`
+      : `${v("time")}. The ground is ${v("ground")}. The sky is ${v("sky")}. At its centre rises ${v("landmark")}. ${dl} ${v("atmos")}`;
+     frags = es
+      ? ["paisaje surrealista y onírico", lc(v("time")), `el suelo es ${v("ground")}`, `el cielo es ${v("sky")}`, `en el centro, ${v("landmark")}`, ...d]
+      : ["surreal dreamlike landscape", lc(v("time")), `the ground is ${v("ground")}`, `the sky is ${v("sky")}`, `${v("landmark")} rising at the centre`, ...d];
+     break; }
+   case "structure":{
+     const f=multi("feat");
+     prose = es
+      ? `${v("type")} de ${v("smat")}. Se encuentra ${v("loc")}. Tiene ${joinList(f,0)}. Dentro, ${v("inside")}. ${v("inhab")}`
+      : `${v("type")} made of ${v("smat")}. It stands ${v("loc")}. It has ${joinList(f,1)}. Inside, ${v("inside")}. ${v("inhab")}`;
+     frags = es
+      ? ["arquitectura surrealista y onírica", `${lc(v("type"))} de ${v("smat")}`, v("loc"), ...f.map(x=>"con "+x), `dentro, ${v("inside")}`]
+      : ["surreal dreamlike architecture", `${lc(v("type"))} made of ${v("smat")}`, v("loc"), ...f.map(x=>"with "+x), `inside, ${v("inside")}`];
+     break; }
+   case "spark":{
+     prose = es
+      ? `Dibuja un ser que sea mitad ${v("obj")} y mitad ${v("animal")}, con ${v("part")}, y que transmita ${v("feel")}.`
+      : `Draw a being that is half ${v("obj")}, half ${v("animal")}, with ${v("part")}, and that conveys ${v("feel")}.`;
+     frags = es
+      ? [`criatura híbrida surrealista, mitad ${v("obj")} y mitad ${v("animal")}`, `con ${v("part")}`, `que transmite ${v("feel")}`]
+      : [`surreal hybrid creature, half ${v("obj")}, half ${v("animal")}`, `with ${v("part")}`, `conveying ${v("feel")}`];
+     break; }
+  }
+  const inf=curInfl();
+  frags.push(MOOD_KW[moodBucket()][li]);
+  if(inf) frags.push(inf.kw[li]);
+  frags.push(v("comp"), v("light"), v("medium"), es?"muy detallado, calidad pictórica":"highly detailed, painterly");
+  return {prose, prompt: frags.join(", ")};
+}
+
+/* ---------- Lámina (canvas) ---------- */
+function lum(hex){const n=parseInt(hex.slice(1),16);const r=n>>16&255,g=n>>8&255,b=n&255;return .2126*r+.7152*g+.0722*b}
+function shade(hex,f){const n=parseInt(hex.slice(1),16);let r=n>>16&255,g=n>>8&255,b=n&255;r=Math.round(r*f);g=Math.round(g*f);b=Math.round(b*f);return`rgb(${Math.min(255,r)},${Math.min(255,g)},${Math.min(255,b)})`}
+function hashPicks(){const s=JSON.stringify(ms().picks)+state.mode+state.infl;let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function palette(){const inf=curInfl();return inf?inf.pal:MOOD_PAL[moodBucket()]}
+function drawPlate(){
+  const cv=$("plate"); const dpr=Math.min(window.devicePixelRatio||1,2);
+  const W=Math.max(300,cv.clientWidth); const H=W*8/21;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+  const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0);
+  const r=mulberry32(hashPicks());
+  const pal=[...palette()].sort((a,b)=>lum(b)-lum(a)); /* claro → oscuro */
+  const hz=H*(0.5+r()*0.2);
+  const sky=c.createLinearGradient(0,0,0,hz);
+  sky.addColorStop(0,pal[2]); sky.addColorStop(.75,pal[1]); sky.addColorStop(1,pal[0]);
+  c.fillStyle=sky; c.fillRect(0,0,W,hz);
+  /* astro */
+  if(r()<.75){c.globalAlpha=.85;c.fillStyle=r()<.5?pal[0]:shade(pal[0],1.1);c.beginPath();c.arc(W*(.15+r()*.7),hz*(.2+r()*.45),H*(.04+r()*.07),0,Math.PI*2);c.fill();c.globalAlpha=1}
+  /* suelo */
+  const gr=c.createLinearGradient(0,hz,0,H);
+  gr.addColorStop(0,pal[1]); gr.addColorStop(.35,pal[3]); gr.addColorStop(1,pal[4]);
+  c.fillStyle=gr; c.fillRect(0,hz,W,H-hz);
+  c.strokeStyle="rgba(255,255,255,.18)"; c.lineWidth=1; c.beginPath(); c.moveTo(0,hz+.5); c.lineTo(W,hz+.5); c.stroke();
+  /* formas biomórficas con sombras largas */
+  const dir=r()<.5?-1:1; const n=3+Math.floor(r()*4);
+  const items=[];
+  for(let i=0;i<n;i++){ const depth=r(); items.push({x:W*(.06+r()*.88), y:hz+(H-hz)*(.12+depth*.78), s:H*(.05+depth*.16+r()*.05), col:pal[Math.floor(r()*4)], tall:r()<.35, seed:r()}); }
+  items.sort((a,b)=>a.y-b.y);
+  for(const it of items){
+    const len=it.s*(4+r()*5);
+    c.fillStyle="rgba(10,8,12,.32)";
+    c.beginPath(); c.ellipse(it.x+dir*len/2, it.y, len/2, it.s*.13, 0, 0, Math.PI*2); c.fill();
+    const rr=mulberry32(Math.floor(it.seed*1e9));
+    const k=9, pts=[]; const hx=it.s*.55, hy=it.s*(it.tall?1.5:.75); const cy=it.y-hy*(it.tall?1.05:.8);
+    for(let j=0;j<k;j++){const a=j/k*Math.PI*2; const rad=.65+rr()*.55; pts.push([it.x+Math.cos(a)*hx*rad, cy+Math.sin(a)*hy*rad]);}
+    if(it.tall){ c.strokeStyle=shade(it.col,.55); c.lineWidth=Math.max(1,it.s*.05); c.beginPath(); c.moveTo(it.x,it.y); c.lineTo(it.x,cy); c.stroke(); }
+    const g=c.createLinearGradient(it.x-dir*hx,cy-hy,it.x+dir*hx,cy+hy);
+    g.addColorStop(0,shade(it.col,1.18)); g.addColorStop(1,shade(it.col,.62));
+    c.fillStyle=g; c.beginPath();
+    const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    let m0=mid(pts[k-1],pts[0]); c.moveTo(m0[0],m0[1]);
+    for(let j=0;j<k;j++){const p=pts[j], q=pts[(j+1)%k], m=mid(p,q); c.quadraticCurveTo(p[0],p[1],m[0],m[1]);}
+    c.fill();
+    if(rr()<.4){ c.fillStyle=pal[4]; c.beginPath(); c.arc(it.x+hx*.15, cy-hy*.15, Math.max(1.5,it.s*.07), 0, Math.PI*2); c.fill(); }
+  }
+  /* grano */
+  const img=c.getImageData(0,0,cv.width,cv.height); const d=img.data; const gr2=mulberry32(7);
+  for(let i=0;i<d.length;i+=4){const v=(gr2()-.5)*14; d[i]+=v; d[i+1]+=v; d[i+2]+=v;}
+  c.putImageData(img,0,0);
+}
+
+/* ---------- Render ---------- */
+const ICON_RE='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M12.5 1.5v3h-3"/></svg>';
+const ICON_LOCK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>';
+const ICON_OPEN='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 4.9-.7"/></svg>';
+
+function textFor(k){
+  const p=ms().picks;
+  if(k.key==="name") return makeName(p.name);
+  if(k.list==="__infl") return INFL[p.infl].n;
+  return D[k.list][p[k.key]][L()];
+}
+function traitRow(k){
+  const locked=!!ms().locks[k.key];
+  const lab=LABELS[k.base][L()];
+  return `<div class="trait${locked?" is-locked":""}"><span class="t-label">${esc(lab)}</span><span class="t-text">${esc(textFor(k))}</span><span class="t-actions"><button class="ib" data-reroll="${k.key}" title="${esc(tr("reroll"))}" aria-label="${esc(tr("reroll"))}: ${esc(lab)}">${ICON_RE}</button><button class="ib" data-lock="${k.key}" aria-pressed="${locked}" title="${esc(tr("lock"))}" aria-label="${esc(tr("lock"))}: ${esc(lab)}">${locked?ICON_LOCK:ICON_OPEN}</button></span></div>`;
+}
+function render(animate){
+  assign(false);
+  const li=L(); const p=ms().picks;
+  const {prose}=compose(li); const {prompt}=compose(state.plang==="es"?0:1);
+  $("name").textContent=makeName(p.name);
+  $("epithet").textContent=D[MODES[state.mode].epi][p.epi][li];
+  $("prose").textContent=prose;
+  $("promptBox").textContent=prompt;
+  const plateNo = (p.name % 300)+1;
+  $("plateNo").textContent=`${tr("plate")} ${roman(plateNo)} · ${UI[state.lang].modes[state.mode]}`;
+  const inf=curInfl(); $("plateInfl").textContent = inf ? inf.n : tr("none");
+  const chips=$("chips");
+  if(state.mode==="spark"){ chips.hidden=false; chips.innerHTML=["obj","animal","part","feel"].map(k=>`<span class="chip">${esc(cap(D[k][p[k]][li]))}</span>`).join(""); }
+  else chips.hidden=true;
+  $("traits").innerHTML=[{key:"name",base:"name"},{key:"epi",base:"epi",list:MODES[state.mode].epi},...slotKeys(state.mode)].map(traitRow).join("");
+  $("notes").innerHTML=noteKeys().map(traitRow).join("") + (state.infl!=="random" && inf ? `<div class="trait"><span class="t-label">${esc(LABELS.infl[li])}</span><span class="t-text">${esc(inf.n)}</span><span></span></div>` : "");
+  $("palette").innerHTML=palette().map(h=>`<button class="sw" data-hex="${h}" title="${esc(tr("hexCopied"))}"><i style="background:${h}"></i><span>${h}</span></button>`).join("");
+  updateSaveBtn();
+  $("backBtn").disabled = $("mBack").disabled = !state.history.some(h=>h.mode===state.mode);
+  renderExt();
+  drawPlate();
+  if(animate){ const el=$("result"); el.classList.remove("fade"); void el.offsetWidth; el.classList.add("fade"); }
+}
+
+function renderChrome(){
+  const u=UI[state.lang];
+  document.documentElement.lang=state.lang;
+  $("brandName").textContent=u.brand;
+  $("tagline").textContent=u.tagline;
+  document.querySelectorAll("[data-i]").forEach(el=>{el.textContent=u[el.dataset.i]});
+  $("langEs").setAttribute("aria-pressed",state.lang==="es"); $("langEn").setAttribute("aria-pressed",state.lang==="en");
+  $("pEs").setAttribute("aria-pressed",state.plang==="es"); $("pEn").setAttribute("aria-pressed",state.plang==="en");
+  $("modes").innerHTML=MODE_ORDER.map(m=>`<button class="mode" data-mode="${m}" aria-pressed="${state.mode===m}"><b>${esc(u.modes[m])}</b><span>${esc(u.modeHint[m])}</span></button>`).join("");
+  $("levels").innerHTML=u.levels.map((t,i)=>`<button data-level="${i+1}" aria-pressed="${state.level===i+1}">${esc(t)}</button>`).join("");
+  $("levels").classList.toggle("is-off", !!MODES[state.mode].noLevel);
+  $("levels").setAttribute("aria-label",u.level);
+  const sel=$("infl");
+  sel.innerHTML=`<option value="random">${esc(u.random)}</option><option value="none">${esc(u.none)}</option>`+INFL.map((x,i)=>`<option value="${i}">${esc(x.n)}</option>`).join("");
+  sel.value=String(state.infl);
+  $("mood").value=state.mood;
+  $("genBtn").textContent=u.gen;
+  $("backBtn").title=u.back; $("backBtn").setAttribute("aria-label",u.back);
+  $("copyDesc").textContent=u.copyDesc; $("copyPrompt").textContent=u.copy;
+  $("mGen").textContent=u.gen; $("mBack").setAttribute("aria-label",u.back);
+  document.title=u.brand;
+  renderSaved();
+  renderImgChrome();
+}
+
+/* ---------- Guardadas ---------- */
+function curKey(){return state.mode+"|"+JSON.stringify(ms().picks)+"|"+state.level}
+function updateSaveBtn(){const on=state.saved.some(s=>s.key===curKey());const b=$("saveBtn");b.textContent=on?tr("savedOk"):tr("save");b.setAttribute("aria-pressed",on)}
+function renderSaved(){
+  const ul=$("savedList");
+  if(!state.saved.length){ul.innerHTML=`<li><p class="empty">${esc(tr("noSaved"))}</p></li>`;return}
+  ul.innerHTML=state.saved.map((s,i)=>`<li><button class="open" data-open="${i}"><b>${esc(makeName(s.picks.name))}</b><span>${esc(UI[state.lang].modes[s.mode])}</span></button><button class="ib" data-del="${i}" title="${esc(tr("del"))}" aria-label="${esc(tr("del"))}: ${esc(makeName(s.picks.name))}">×</button></li>`).join("");
+}
+
+/* ---------- Copiar ---------- */
+let toastT;
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1600)}
+function selectEl(el){try{const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r)}catch(e){}}
+function copyText(txt, el){
+  try{
+    navigator.clipboard.writeText(txt).then(()=>toast(tr("copied")),()=>{ if(el) selectEl(el); toast(tr("copyFail")); });
+  }catch(e){ if(el) selectEl(el); toast(tr("copyFail")); }
+}
+
+/* ---------- Ilustrar: generadores externos ---------- */
+const EXT = [
+  {n:"ChatGPT", url:p=>"https://chatgpt.com/?q="+encodeURIComponent(tr("chatPrefix")+p), pre:true},
+  {n:"Bing Image Creator", url:p=>"https://www.bing.com/images/create?q="+encodeURIComponent(p.slice(0,480)), pre:true},
+  {n:"Gemini", url:()=>"https://gemini.google.com/app", pre:false},
+  {n:"Ideogram", url:()=>"https://ideogram.ai/", pre:false},
+  {n:"Leonardo.ai", url:()=>"https://app.leonardo.ai/image-generation", pre:false}
+];
+function renderExt(){
+  const p=$("promptBox").textContent;
+  $("extLinks").innerHTML=EXT.map((x,i)=>`<a href="${esc(x.url(p))}" target="_blank" rel="noopener" data-ext="${i}"><b>${esc(x.n)}</b><span>${esc(x.pre?tr("prefilled"):tr("paste"))}</span></a>`).join("");
+}
+$("extLinks").addEventListener("click",e=>{
+  if(!e.target.closest("[data-ext]")) return;
+  /* no se cancela la navegación: copia y deja que el enlace abra la pestaña */
+  try{ navigator.clipboard.writeText($("promptBox").textContent).then(()=>toast(tr("copied")),()=>{}); }catch(err){}
+});
+
+/* ---------- Ilustrar: generación dentro de la página ---------- */
+const PROVIDERS = {
+  pollinations:{n:"Pollinations", keyUrl:"https://enter.pollinations.ai/keys", models:["zimage","flux","klein","gptimage","gpt-image-2"], def:"zimage"},
+  openai:{n:"OpenAI", keyUrl:"https://platform.openai.com/api-keys", models:["gpt-image-1-mini","gpt-image-1.5","gpt-image-2"], def:"gpt-image-1-mini"},
+  fal:{n:"fal.ai", keyUrl:"https://fal.ai/dashboard/keys", models:["fal-ai/flux/schnell","fal-ai/flux/dev","fal-ai/flux-pro/v1.1"], def:"fal-ai/flux/schnell"}
+};
+const ASPECTS = {
+  land:{poll:[1344,768], openai:"1536x1024", fal:"landscape_16_9"},
+  square:{poll:[1024,1024], openai:"1024x1024", fal:"square_hd"},
+  port:{poll:[768,1344], openai:"1024x1536", fal:"portrait_16_9"}
+};
+const img = Object.assign({provider:"pollinations", keys:{}, models:{}, aspect:"land"}, store.get("atlas-img",{}));
+if(!PROVIDERS[img.provider]) img.provider="pollinations";
+if(!ASPECTS[img.aspect]) img.aspect="land";
+const gallery=[]; let shown=-1; let busy=false;
+function saveImgCfg(){store.set("atlas-img",img)}
+function curModel(){return img.models[img.provider]||PROVIDERS[img.provider].def}
+
+function renderImgChrome(){
+  const u=UI[state.lang];
+  $("provider").innerHTML=Object.entries(PROVIDERS).map(([k,v])=>`<option value="${k}">${esc(v.n)}</option>`).join("");
+  $("provider").value=img.provider;
+  $("modelList").innerHTML=PROVIDERS[img.provider].models.map(m=>`<option value="${esc(m)}"></option>`).join("");
+  $("model").value=curModel();
+  $("apiKey").value=img.keys[img.provider]||"";
+  $("keySave").textContent=u.keySave; $("keyForget").textContent=u.keyForget;
+  $("keyLink").href=PROVIDERS[img.provider].keyUrl; $("keyLink").textContent=`${u.keyGet} ${PROVIDERS[img.provider].n} ↗`;
+  $("keyToggle").textContent=$("keyForm").hidden?u.config:u.hideConfig;
+  $("aspect").innerHTML=Object.keys(ASPECTS).map(k=>`<option value="${k}">${esc(u.aspects[k])}</option>`).join("");
+  $("aspect").value=img.aspect;
+  $("genImg").textContent=u.genImg;
+  $("imgDl").textContent=u.download;
+}
+function setStatus(msg, err){const s=$("genStatus");s.classList.toggle("err",!!err);s.innerHTML=msg}
+async function apiError(r){
+  let detail="";
+  try{const j=await r.json(); detail=(j.error&&(j.error.message||j.error))||j.detail||j.message||"";}catch(e){}
+  if(typeof detail!=="string") detail=JSON.stringify(detail);
+  const map={401:"errKey",403:"errKey",402:"errPay",429:"errRate"};
+  const e=new Error(map[r.status]?tr(map[r.status]):`${tr("errOther")} (${r.status})${detail?": "+detail.slice(0,200):""}`);
+  return e;
+}
+async function toBlobUrl(url){
+  try{const r=await fetch(url); if(!r.ok) throw 0; return URL.createObjectURL(await r.blob());}catch(e){return url}
+}
+async function generateImage(){
+  if(busy) return;
+  const key=img.keys[img.provider];
+  if(!key){ $("keyForm").hidden=false; renderImgChrome(); setStatus(esc(tr("needKey")),true); $("apiKey").focus(); return; }
+  const prompt=$("promptBox").textContent, model=curModel(), asp=ASPECTS[img.aspect];
+  busy=true; $("genImg").disabled=true; setStatus(`<span class="spin" aria-hidden="true"></span>${esc(tr("generating"))}`);
+  const ctrl=new AbortController(); const timer=setTimeout(()=>ctrl.abort(),180000);
+  try{
+    let src;
+    if(img.provider==="pollinations"){
+      const [w,h]=asp.poll; const seed=Math.floor(Math.random()*2147483647);
+      const url=`https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model)}&width=${w}&height=${h}&seed=${seed}`;
+      const r=await fetch(url,{headers:{Authorization:"Bearer "+key},signal:ctrl.signal});
+      if(!r.ok) throw await apiError(r);
+      src=URL.createObjectURL(await r.blob());
+    } else if(img.provider==="openai"){
+      const r=await fetch("https://api.openai.com/v1/images/generations",{method:"POST",signal:ctrl.signal,
+        headers:{Authorization:"Bearer "+key,"Content-Type":"application/json"},
+        body:JSON.stringify({model,prompt,size:asp.openai,n:1})});
+      if(!r.ok) throw await apiError(r);
+      const j=await r.json(); const d=j.data&&j.data[0];
+      if(!d) throw new Error(tr("errOther"));
+      src=d.b64_json?"data:image/png;base64,"+d.b64_json:await toBlobUrl(d.url);
+    } else {
+      const r=await fetch("https://fal.run/"+model.replace(/^\/+/,""),{method:"POST",signal:ctrl.signal,
+        headers:{Authorization:"Key "+key,"Content-Type":"application/json"},
+        body:JSON.stringify({prompt,image_size:asp.fal,num_images:1})});
+      if(!r.ok) throw await apiError(r);
+      const j=await r.json(); const u=j.images&&j.images[0]&&j.images[0].url;
+      if(!u) throw new Error(tr("errOther"));
+      src=await toBlobUrl(u);
+    }
+    gallery.unshift({src, name:$("name").textContent, meta:`${PROVIDERS[img.provider].n} · ${model}`});
+    showImage(0);
+    setStatus(esc(tr("done")));
+  }catch(e){
+    const msg = e.name==="AbortError" ? tr("errTimeout") : (e instanceof TypeError ? tr("errNet") : e.message);
+    setStatus(esc(msg),true);
+  }finally{
+    clearTimeout(timer); busy=false; $("genImg").disabled=false;
+  }
+}
+function showImage(i){
+  shown=i; const g=gallery[i]; if(!g) return;
+  $("imgOut").hidden=false;
+  $("imgEl").src=g.src; $("imgEl").alt=g.name;
+  $("imgMeta").textContent=`${g.name} · ${g.meta}`;
+  $("imgDl").href=g.src; $("imgDl").download=`${g.name.toLowerCase()}-${gallery.length-i}.png`;
+  const th=$("thumbs"); th.hidden=gallery.length<2;
+  th.innerHTML=gallery.map((x,j)=>`<button data-th="${j}" aria-current="${j===i}" aria-label="${esc(x.name)}"><img src="${esc(x.src)}" alt=""></button>`).join("");
+}
+
+$("keyToggle").onclick=()=>{const f=$("keyForm");f.hidden=!f.hidden;$("keyToggle").setAttribute("aria-expanded",!f.hidden);renderImgChrome()};
+$("provider").onchange=e=>{img.provider=e.target.value;saveImgCfg();renderImgChrome()};
+$("model").onchange=e=>{const v=e.target.value.trim();if(v)img.models[img.provider]=v;else delete img.models[img.provider];saveImgCfg()};
+$("aspect").onchange=e=>{img.aspect=e.target.value;saveImgCfg()};
+$("keyForm").onsubmit=e=>{
+  e.preventDefault();
+  const v=$("apiKey").value.trim(); const m=$("model").value.trim();
+  if(m) img.models[img.provider]=m;
+  if(v){img.keys[img.provider]=v;saveImgCfg();toast(tr("keySaved"));setStatus("");$("keyForm").hidden=true;renderImgChrome();}
+};
+$("keyForget").onclick=()=>{delete img.keys[img.provider];saveImgCfg();$("apiKey").value="";toast(tr("keyForgot"))};
+$("genImg").onclick=generateImage;
+$("thumbs").onclick=e=>{const b=e.target.closest("[data-th]");if(b)showImage(+b.dataset.th)};
+
+/* ---------- Eventos ---------- */
+$("langEs").onclick=()=>{state.lang="es";savePrefs();renderChrome();render()};
+$("langEn").onclick=()=>{state.lang="en";savePrefs();renderChrome();render()};
+$("pEs").onclick=()=>{state.plang="es";savePrefs();renderChrome();render()};
+$("pEn").onclick=()=>{state.plang="en";savePrefs();renderChrome();render()};
+$("modes").onclick=e=>{const b=e.target.closest("[data-mode]");if(!b)return;state.mode=b.dataset.mode;savePrefs();renderChrome();render(true)};
+$("levels").onclick=e=>{const b=e.target.closest("[data-level]");if(!b)return;state.level=+b.dataset.level;savePrefs();renderChrome();render()};
+$("mood").oninput=e=>{state.mood=+e.target.value;savePrefs();};
+$("mood").onchange=()=>render();
+$("infl").onchange=e=>{state.infl=e.target.value==="random"||e.target.value==="none"?e.target.value:+e.target.value;savePrefs();render()};
+$("genBtn").onclick=generate;
+$("mGen").onclick=generate;
+$("mBack").onclick=()=>$("backBtn").click();
+$("backBtn").onclick=()=>{
+  for(let i=state.history.length-1;i>=0;i--){ if(state.history[i].mode===state.mode){ const h=state.history.splice(i,1)[0]; ms().picks=h.picks; render(true); return; } }
+};
+function onTraitClick(e){
+  const rb=e.target.closest("[data-reroll]"), lb=e.target.closest("[data-lock]");
+  if(rb){ const k=rb.dataset.reroll; state.history.push(snapshot()); const s=ms(); const was=s.locks[k]; s.locks[k]=false; assign(true,k); s.locks[k]=was; render(); }
+  if(lb){ const k=lb.dataset.lock; const s=ms(); s.locks[k]=!s.locks[k]; render(); }
+}
+$("traits").onclick=onTraitClick; $("notes").onclick=onTraitClick;
+$("palette").onclick=e=>{const b=e.target.closest("[data-hex]");if(b)copyText(b.dataset.hex,null)};
+$("copyDesc").onclick=()=>{copyText($("name").textContent+" — "+$("epithet").textContent+"\n\n"+$("prose").textContent,$("prose"))};
+$("copyPrompt").onclick=()=>copyText($("promptBox").textContent,$("promptBox"));
+$("saveBtn").onclick=()=>{
+  const key=curKey(); const i=state.saved.findIndex(s=>s.key===key);
+  if(i>=0) state.saved.splice(i,1);
+  else { state.saved.unshift({key, mode:state.mode, picks:{...ms().picks}, level:state.level, infl:state.infl, mood:state.mood}); state.saved=state.saved.slice(0,60); toast(tr("savedToast")); }
+  store.set("atlas-saved",state.saved); renderSaved(); updateSaveBtn();
+};
+$("savedList").onclick=e=>{
+  const o=e.target.closest("[data-open]"), d=e.target.closest("[data-del]");
+  if(o){ const s=state.saved[+o.dataset.open]; state.history.push(snapshot()); state.mode=s.mode; state.level=s.level; state.infl=s.infl; state.mood=s.mood; ms().picks={...s.picks}; savePrefs(); renderChrome(); render(true); }
+  if(d){ state.saved.splice(+d.dataset.del,1); store.set("atlas-saved",state.saved); renderSaved(); updateSaveBtn(); }
+};
+document.addEventListener("keydown",e=>{
+  if(e.code!=="Space"||e.ctrlKey||e.metaKey||e.altKey) return;
+  const tag=(e.target.tagName||"").toUpperCase();
+  if(["INPUT","SELECT","TEXTAREA","BUTTON"].includes(tag)||e.target.isContentEditable) return;
+  e.preventDefault(); generate();
+});
+let rzT; new ResizeObserver(()=>{clearTimeout(rzT);rzT=setTimeout(drawPlate,80)}).observe($("plate"));
+
+renderChrome();
+assign(true);
+render();
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>drawPlate());
+</script>
+</body>
+</html>
