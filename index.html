@@ -288,6 +288,11 @@ section.block .sub{margin:0 0 .9rem;color:var(--muted);font-size:.9rem;font-styl
             <button class="btn" id="copyPrompt"></button>
           </div>
         </div>
+        <div class="seg" role="group" id="pvarSeg" style="margin-bottom:.7rem">
+          <button data-pvar="full"></button>
+          <button data-pvar="short"></button>
+          <button data-pvar="safe"></button>
+        </div>
         <pre class="prompt-box" id="promptBox"></pre>
         <p class="hint" data-i="promptHint"></p>
       </section>
@@ -359,10 +364,11 @@ const UI = {
     copyFail:"Texto seleccionado: cópialo con Ctrl+C",
     traits:"Rasgos", traitsHint:"Bloquea lo que te guste y vuelve a soñar el resto.",
     notes:"Notas para dibujar", prompt:"Prompt para IA",
-    promptHint:"Los generadores de imagen suelen entender mejor el inglés.",
+    promptHint:"Los generadores de imagen suelen entender mejor el inglés. Si un servicio da error o rechaza la imagen, prueba «Corto» o «Apto para filtros» (sin nombres de artistas ni palabras duras).",
     plate:"Lám.", reroll:"Cambiar este rasgo", lock:"Bloquear este rasgo",
     spaceHint:"Barra espaciadora: soñar otra", del:"Borrar", hexCopied:"Color copiado", savedToast:"Guardada en tu atlas",
     illus:"Ilustrar", illusHint:"Gratis: cada botón copia el prompt y abre el generador. Si dice «pega», mantén pulsado el cuadro de texto y pega.",
+    pvarFull:"Completo", pvarShort:"Corto", pvarSafe:"Apto para filtros",
     prefilled:"Prompt ya escrito", paste:"Pega el prompt", chatPrefix:"Genera una imagen con este prompt: ",
     inPage:"Generar aquí con tu clave", config:"Configurar clave", hideConfig:"Ocultar", provider:"Servicio", model:"Modelo", apiKey:"Clave de API",
     keySave:"Guardar clave", keyForget:"Olvidar clave", keyGet:"Conseguir una clave en", keySaved:"Clave guardada en este navegador", keyForgot:"Clave borrada de este navegador",
@@ -386,10 +392,11 @@ const UI = {
     copyFail:"Text selected: copy it with Ctrl+C",
     traits:"Traits", traitsHint:"Lock what you like and dream the rest again.",
     notes:"Drawing notes", prompt:"AI prompt",
-    promptHint:"Image generators usually understand English best.",
+    promptHint:"Image generators usually understand English best. If a service errors out or refuses the image, try “Short” or “Filter-friendly” (no artist names or harsh words).",
     plate:"Plate", reroll:"Change this trait", lock:"Lock this trait",
     spaceHint:"Space bar: dream another", del:"Delete", hexCopied:"Colour copied", savedToast:"Saved to your atlas",
     illus:"Illustrate", illusHint:"Free: each button copies the prompt and opens the generator. If it says “paste”, long-press the text box and paste.",
+    pvarFull:"Full", pvarShort:"Short", pvarSafe:"Filter-friendly",
     prefilled:"Prompt already filled in", paste:"Paste the prompt", chatPrefix:"Generate an image from this prompt: ",
     inPage:"Generate here with your key", config:"Set up key", hideConfig:"Hide", provider:"Service", model:"Model", apiKey:"API key",
     keySave:"Save key", keyForget:"Forget key", keyGet:"Get a key at", keySaved:"Key saved in this browser", keyForgot:"Key removed from this browser",
@@ -836,6 +843,7 @@ const prefs = store.get("atlas-prefs",{});
 const state = {
   lang: prefs.lang || ((navigator.language||"es").toLowerCase().startsWith("es") ? "es" : "en"),
   plang: prefs.plang || "en",
+  pvar: ["full","short","safe"].includes(prefs.pvar) ? prefs.pvar : "full",
   mode: prefs.mode && MODES[prefs.mode] ? prefs.mode : "creature",
   mood: typeof prefs.mood==="number" ? prefs.mood : 55,
   level: [1,2,3].includes(prefs.level) ? prefs.level : 2,
@@ -844,7 +852,7 @@ const state = {
   history: [],
   saved: store.get("atlas-saved",[])
 };
-function savePrefs(){store.set("atlas-prefs",{lang:state.lang,plang:state.plang,mode:state.mode,mood:state.mood,level:state.level,infl:state.infl})}
+function savePrefs(){store.set("atlas-prefs",{lang:state.lang,plang:state.plang,pvar:state.pvar,mode:state.mode,mood:state.mood,level:state.level,infl:state.infl})}
 const L = () => state.lang==="es"?0:1;
 const tr = k => UI[state.lang][k];
 
@@ -959,11 +967,36 @@ function compose(li){
      break; }
   }
   const inf=curInfl();
-  frags.push(MOOD_KW[moodBucket()][li]);
-  if(inf) frags.push(inf.kw[li]);
-  frags.push(v("comp"), v("light"), v("medium"), es?"muy detallado, calidad pictórica":"highly detailed, painterly");
-  return {prose, prompt: frags.join(", ")};
+  const full=[...frags, MOOD_KW[moodBucket()][li]];
+  if(inf) full.push(inf.kw[li]);
+  full.push(v("comp"), v("light"), v("medium"), es?"muy detallado, calidad pictórica":"highly detailed, painterly");
+  /* Versión corta: lo esencial del sujeto + estilo, por debajo de ~450 caracteres (límite de Bing/Copilot) */
+  /* en criaturas se cambia el apoyo (patas) por la primera deformidad, que es lo más característico */
+  const subj = state.mode==="creature" ? [0,1,2,3,5].map(i=>frags[i]) : frags.slice(0,5);
+  const short=[...subj, MOOD_KW[moodBucket()][li]];
+  if(inf) short.push(inf.kw[li].split(", ").slice(0,3).join(", "));
+  short.push(v("medium"));
+  /* Versión apta para filtros: corta, sin nombres de artistas ni palabras que suelen bloquearse */
+  const safe=[...subj.map(s=>soften(s,li)), MOOD_SAFE[moodBucket()][li]];
+  if(inf) safe.push(inf.kw[li].split(", ").slice(1,3).join(", "));
+  safe.push(v("medium"));
+  return {prose, prompt: full.join(", "), short: clip(short.join(", ")), safe: clip(safe.join(", "))};
 }
+const MOOD_SAFE = [
+ ["atmósfera de sueño, calma extraña, suave","dreamlike atmosphere, strange calm, soft"],
+ ["misterioso, liminal, extraño","mysterious, liminal, eerie"],
+ ["oscuro, melancólico, inquietante","dark, melancholic, haunting"]
+];
+const SOFT = [
+ [/carne sin piel, brillante/g,"cera roja brillante"],[/glistening skinless flesh/g,"glossy red wax"],
+ [/de carne/g,"de arcilla"],[/carne/g,"arcilla"],[/flesh/g,"clay"],
+ [/heridas/g,"grietas"],[/wounds/g,"cracks"],[/que sangra/g,"de vetas rojas"],[/bleeding /g,"red-"],
+ [/matadero convertido en catedral/g,"almacén convertido en catedral"],[/slaughterhouse turned cathedral/g,"warehouse turned cathedral"],
+ [/mal cosidos/g,"unidos"],[/badly stitched/g,"joined"],[/piel curtida tensada sobre costillas/g,"lona tensada sobre arcos"],[/tanned hide stretched over ribs/g,"canvas stretched over arches"],
+ [/estómago abierto/g,"pecho"],[/open stomach/g,"chest"],[/en el interior de un cuerpo dormido/g,"dentro de un gigante dormido"],[/inside a sleeping body/g,"inside a sleeping giant"]
+];
+function soften(s){ for(const [re,to] of SOFT) s=s.replace(re,to); return s; }
+function clip(s,max=450){ if(s.length<=max) return s; const cut=s.slice(0,max); return cut.slice(0,cut.lastIndexOf(", ")); }
 
 /* ---------- Lámina (canvas) ---------- */
 function lum(hex){const n=parseInt(hex.slice(1),16);const r=n>>16&255,g=n>>8&255,b=n&255;return .2126*r+.7152*g+.0722*b}
@@ -1035,7 +1068,9 @@ function traitRow(k){
 function render(animate){
   assign(false);
   const li=L(); const p=ms().picks;
-  const {prose}=compose(li); const {prompt}=compose(state.plang==="es"?0:1);
+  const {prose}=compose(li); const pv=compose(state.plang==="es"?0:1);
+  const prompt = state.pvar==="short"?pv.short : state.pvar==="safe"?pv.safe : pv.prompt;
+  promptVariants=pv;
   $("name").textContent=makeName(p.name);
   $("epithet").textContent=D[MODES[state.mode].epi][p.epi][li];
   $("prose").textContent=prose;
@@ -1063,6 +1098,7 @@ function renderChrome(){
   $("tagline").textContent=u.tagline;
   document.querySelectorAll("[data-i]").forEach(el=>{el.textContent=u[el.dataset.i]});
   $("langEs").setAttribute("aria-pressed",state.lang==="es"); $("langEn").setAttribute("aria-pressed",state.lang==="en");
+  document.querySelectorAll("[data-pvar]").forEach(b=>{b.textContent=u["pvar"+cap(b.dataset.pvar)];b.setAttribute("aria-pressed",state.pvar===b.dataset.pvar)});
   $("pEs").setAttribute("aria-pressed",state.plang==="es"); $("pEn").setAttribute("aria-pressed",state.plang==="en");
   $("modes").innerHTML=MODE_ORDER.map(m=>`<button class="mode" data-mode="${m}" aria-pressed="${state.mode===m}"><b>${esc(u.modes[m])}</b><span>${esc(u.modeHint[m])}</span></button>`).join("");
   $("levels").innerHTML=u.levels.map((t,i)=>`<button data-level="${i+1}" aria-pressed="${state.level===i+1}">${esc(t)}</button>`).join("");
@@ -1101,22 +1137,33 @@ function copyText(txt, el){
 }
 
 /* ---------- Ilustrar: generadores externos ---------- */
+/* safe: el servicio tiene filtros estrictos y límite de longitud → siempre la versión «apta para filtros».
+   chat: es un asistente de conversación → se antepone «Genera una imagen…» */
+let promptVariants=null;
 const EXT = [
-  {n:"ChatGPT", url:p=>"https://chatgpt.com/?q="+encodeURIComponent(tr("chatPrefix")+p), pre:true},
-  {n:"Bing Image Creator", url:p=>"https://www.bing.com/images/create?q="+encodeURIComponent(p.slice(0,480)), pre:true},
-  {n:"Gemini", url:()=>"https://gemini.google.com/app", pre:false},
-  {n:"Ideogram", url:()=>"https://ideogram.ai/", pre:false},
-  {n:"Leonardo.ai", url:()=>"https://app.leonardo.ai/image-generation", pre:false}
+  {n:"ChatGPT", url:p=>"https://chatgpt.com/?q="+encodeURIComponent(p), pre:true, chat:true},
+  {n:"Gemini", url:()=>"https://gemini.google.com/app", chat:true},
+  {n:"Microsoft Copilot", url:()=>"https://copilot.microsoft.com/", chat:true, safe:true},
+  {n:"Bing Image Creator", url:p=>"https://www.bing.com/images/create?q="+encodeURIComponent(p), pre:true, safe:true},
+  {n:"Ideogram", url:()=>"https://ideogram.ai/"},
+  {n:"Leonardo.ai", url:()=>"https://app.leonardo.ai/image-generation"}
 ];
+function extText(x){
+  const p = x.safe ? promptVariants.safe : $("promptBox").textContent;
+  return x.chat ? tr("chatPrefix")+p : p;
+}
 function renderExt(){
-  const p=$("promptBox").textContent;
-  $("extLinks").innerHTML=EXT.map((x,i)=>`<a href="${esc(x.url(p))}" target="_blank" rel="noopener" data-ext="${i}"><b>${esc(x.n)}</b><span>${esc(x.pre?tr("prefilled"):tr("paste"))}</span></a>`).join("");
+  $("extLinks").innerHTML=EXT.map((x,i)=>{
+    const tag=(x.pre?tr("prefilled"):tr("paste"))+(x.safe?" · "+tr("pvarSafe"):"");
+    return `<a href="${esc(x.url(extText(x)))}" target="_blank" rel="noopener" data-ext="${i}"><b>${esc(x.n)}</b><span>${esc(tag)}</span></a>`;
+  }).join("");
 }
 $("extLinks").addEventListener("click",e=>{
-  if(!e.target.closest("[data-ext]")) return;
+  const a=e.target.closest("[data-ext]"); if(!a) return;
   /* no se cancela la navegación: copia y deja que el enlace abra la pestaña */
-  try{ navigator.clipboard.writeText($("promptBox").textContent).then(()=>toast(tr("copied")),()=>{}); }catch(err){}
+  try{ navigator.clipboard.writeText(extText(EXT[+a.dataset.ext])).then(()=>toast(tr("copied")),()=>{}); }catch(err){}
 });
+$("pvarSeg").onclick=e=>{const b=e.target.closest("[data-pvar]");if(!b)return;state.pvar=b.dataset.pvar;savePrefs();renderChrome();render()};
 
 /* ---------- Ilustrar: generación dentro de la página ---------- */
 const PROVIDERS = {
